@@ -27,6 +27,23 @@ const CANONICAL = [
   ["Métropole", "Outre-mer", "Étranger"],
 ];
 
+/**
+ * Colonnes de taux / parts (bornées à 0-100) — hors évolutions (« +150 % » est légitime).
+ * Sert à détecter l'erreur classique « taux_acces × 100 » (taux_acces est déjà en %).
+ */
+const BOUNDED_PCT = /taux|part|pct|pourcent|proportion|ratio_admis|share/i;
+const GROWTH = /evol|variation|croissance|delta|diff|hausse|baisse|progression|ecart|gain|perte/i;
+export function outOfRangePct(columns: string[], rows: (string | number | boolean | null)[][]) {
+  const issues: { column: string; max: number }[] = [];
+  columns.forEach((c, i) => {
+    if (!BOUNDED_PCT.test(c) || GROWTH.test(c)) return;
+    const vals = rows.map((r) => r[i]).filter((v): v is number => typeof v === "number");
+    const max = vals.length ? Math.max(...vals) : 0;
+    if (max > 100.5) issues.push({ column: c, max });
+  });
+  return issues;
+}
+
 /** Libellé lisible d'une colonne quand le modèle n'en fournit pas : taux_acces_moyen → « Taux d'accès moyen ». */
 const WORDS: Record<string, string> = {
   taux: "taux", acces: "d'accès", voeux: "vœux", pp: "(PP)", pc: "(PC)", nb: "nombre de", moy: "moyen", pct: "%",
@@ -66,6 +83,14 @@ export function buildChart(src: ChartSource, args: Record<string, unknown>, id: 
   const li = type === "scatter" ? opt(args.label_column, "label_column") : -1;
   const labels = Array.isArray(args.series_labels) ? args.series_labels.map(String) : [];
   const notes: string[] = [];
+  // Garde-fou : un pourcentage de taux / part au-delà de 100 trahit un « × 100 » en trop dans la requête.
+  if (unit === "pct") {
+    const bad = outOfRangePct(ys.map((i) => src.columns[i]), src.rows.map((r) => ys.map((i) => r[i])));
+    if (bad.length) {
+      throw new Error(`unit=pct mais « ${bad[0].column} » atteint ${Math.round(bad[0].max)} : un taux ou une part doit être entre 0 et 100. `
+        + "taux_acces est DÉJÀ en % (ne pas multiplier par 100). Corrige la requête avec run_sql, puis relance create_chart.");
+    }
+  }
   const base = { id, type, title: String(args.title ?? ""), subtitle: args.subtitle ? String(args.subtitle) : undefined, unit, xLabel: humanize(String(args.x)) };
   const rows = src.rows;
 

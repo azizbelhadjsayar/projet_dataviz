@@ -63,7 +63,8 @@ Valeurs des colonnes catégorielles :
 ${values.join("\n")}
 
 # Recettes de calcul (toujours des ratios de SOMMES, jamais des moyennes de ratios)
-- Taux d'accès moyen (pondéré par les vœux) : sum(taux_acces * voeux_pp) FILTER (WHERE taux_acces IS NOT NULL) / sum(voeux_pp) FILTER (WHERE taux_acces IS NOT NULL). Taux médian des formations : median(taux_acces).
+UNITÉS : taux_acces est DÉJÀ un pourcentage (0 à 100) : ne le multiplie JAMAIS par 100. Toutes les autres colonnes numériques sont des effectifs ; les parts se calculent 100 * somme / somme. Un taux ou une part doit toujours être compris entre 0 et 100.
+- Taux d'accès moyen (pondéré par les vœux, déjà en %, sans 100 *) : sum(taux_acces * voeux_pp) FILTER (WHERE taux_acces IS NOT NULL) / sum(voeux_pp) FILTER (WHERE taux_acces IS NOT NULL). Taux médian des formations : median(taux_acces).
 - Vœux par place (pression) : sum(voeux_pp) / NULLIF(sum(capacite), 0)
 - Taux de remplissage (%) : 100 * sum(admis_total) / NULLIF(sum(capacite), 0)
 - Part des vœux ayant reçu une proposition (%) : 100 * sum(propositions_total) / NULLIF(sum(voeux_total), 0)

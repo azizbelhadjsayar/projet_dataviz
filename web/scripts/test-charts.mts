@@ -8,6 +8,17 @@ const { CHART_EXAMPLES } = await import("../src/lib/agent/chart-examples");
 const cases = [
   ...CHART_EXAMPLES,
   {
+    name: "Erreur attendue : taux d'accès multiplié par 100 (bug 6 420 %)",
+    sql: `SELECT filiere, secteur, round(100 * sum(taux_acces*voeux_pp) FILTER (WHERE taux_acces IS NOT NULL) / sum(voeux_pp) FILTER (WHERE taux_acces IS NOT NULL), 1) AS taux_acces_moyen
+          FROM formations WHERE session = 2025 AND type_formation = 'Licence' GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 8`,
+    args: { type: "bar", x: "filiere", y: ["taux_acces_moyen"], color_by: "secteur", unit: "pct", title: "t" },
+  },
+  {
+    name: "Évolution > 100 % acceptée (vraie croissance)",
+    sql: `SELECT 'Formation test' AS formation, 150.0 AS evolution_voeux_pct`,
+    args: { type: "bar", x: "formation", y: ["evolution_voeux_pct"], unit: "pct", title: "t" },
+  },
+  {
     name: "Erreur attendue : heatmap sans color_by",
     sql: "SELECT session, count(*) AS n FROM formations GROUP BY 1",
     args: { type: "heatmap", x: "session", y: ["n"], unit: "count", title: "t" },

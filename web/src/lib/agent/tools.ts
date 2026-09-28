@@ -1,6 +1,6 @@
 import "server-only";
 import { runQuery, SqlError, type QueryResult } from "./db";
-import { buildChart, chartSize } from "./charts";
+import { buildChart, chartSize, outOfRangePct } from "./charts";
 import { CHART_TYPES, type AgentEvent } from "./types";
 
 // Outils de l'agent : exécution SQL libre (lecture seule) et création de graphiques.
@@ -71,10 +71,15 @@ export class AgentSession {
       emit({ type: "sql_result", id, columns: res.columns, rows: res.rows, truncated: res.truncated, ms: res.ms });
       const rows = res.rows.slice(0, MODEL_ROWS).map((r) =>
         r.map((v) => (typeof v === "number" && !Number.isInteger(v) ? Math.round(v * 100) / 100 : typeof v === "string" && v.length > 90 ? `${v.slice(0, 90)}…` : v)));
+      // Avertissement immédiat si un taux / une part dépasse 100 (typiquement taux_acces × 100 en trop).
+      const scale = outOfRangePct(res.columns, res.rows);
       return {
         result_id: id,
         columns: res.columns,
         rows,
+        ...(scale.length ? {
+          warning: `ÉCHELLE ANORMALE : ${scale.map((s) => `${s.column} atteint ${Math.round(s.max)}`).join(", ")} alors qu'un taux / une part doit être entre 0 et 100. taux_acces est DÉJÀ en % : retire le « 100 * » et relance run_sql avant de conclure ou de tracer.`,
+        } : {}),
         row_count: res.truncated ? `plus de ${res.rows.length}` : res.rows.length,
         ...(res.rows.length > MODEL_ROWS ? { note: `Seules les ${MODEL_ROWS} premières lignes sont montrées ici (${res.rows.length} disponibles pour un graphique).` } : {}),
         ...(res.rows.length === 0 ? { note: "Aucune ligne : vérifie les filtres (valeurs exactes, accents, casse)." } : {}),
