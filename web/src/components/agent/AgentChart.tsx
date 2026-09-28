@@ -4,6 +4,7 @@ import { memo, type ReactNode } from "react";
 import { ChartCard, type TableData } from "@/components/ChartCard";
 import { ColumnChart } from "@/components/charts/ColumnChart";
 import { ComboChart } from "@/components/charts/ComboChart";
+import { DonutChart } from "@/components/charts/DonutChart";
 import { Legend, type Series } from "@/components/charts/common";
 import { FacetBars } from "@/components/charts/FacetBars";
 import { HBarChart } from "@/components/charts/HBarChart";
@@ -24,6 +25,13 @@ function tableOf(chart: ChartPayload): TableData {
   if (chart.heat) {
     const h = chart.heat;
     return { columns: [h.rowLabel, ...h.cols], rows: h.rows.map((r, i) => [r, ...h.values[i].map((v) => fmt(v))]) };
+  }
+  if (chart.type === "pie") {
+    const total = chart.data.reduce((a, d) => a + ((d.y0 as number) || 0), 0);
+    return {
+      columns: [chart.xLabel, chart.series[0]?.label ?? "Valeur", "Part"],
+      rows: chart.data.map((d) => [String(d.label), fmt(d.y0), total ? fmtValue((100 * ((d.y0 as number) || 0)) / total, "pct") : null]),
+    };
   }
   const seriesCols = chart.series.map((s) => s.label);
   const line = (d: ChartRow) => chart.series.map((s, k) => fmt(d[s.key], chart.type === "combo" && k === 1 ? chart.unit2 : chart.unit));
@@ -80,7 +88,10 @@ export const AgentChart = memo(function AgentChart({ chart }: { chart: ChartPayl
   const stacked = chart.type === "stacked_bar" || chart.type === "stacked_column";
 
   let body: ReactNode;
-  if (chart.heat) {
+  if (chart.type === "pie") {
+    body = <DonutChart unit={chart.unit} metricLabel={series[0]?.label ?? ""}
+      data={chart.data.map((d) => ({ label: String(d.label), value: (d.y0 as number) || 0 }))} />;
+  } else if (chart.heat) {
     body = <Heatmap {...chart.heat} unit={chart.unit} metricLabel={series[0]?.label ?? ""} />;
   } else if (chart.type === "combo") {
     body = <ComboChart id={chart.id} data={chart.data} bar={series[0]} line={series[1]} unit={chart.unit} unit2={chart.unit2 ?? chart.unit} />;

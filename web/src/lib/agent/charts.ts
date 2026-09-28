@@ -114,6 +114,31 @@ export function buildChart(src: ChartSource, args: Record<string, unknown>, id: 
     };
   }
 
+  // ── Anneau (répartition d'un total) : 6 parts max, les plus petites regroupées dans « Autres » ──
+  if (type === "pie") {
+    const totals = new Map<string, number>();
+    for (const r of rows) {
+      const v = num(r[ys[0]]);
+      if (v === null) continue;
+      if (v < 0) throw new Error("pie : valeurs négatives impossibles dans une répartition ; utilise bar.");
+      totals.set(str(r[xi]), (totals.get(str(r[xi])) ?? 0) + v);
+    }
+    let parts = [...totals.entries()].sort((a, b) => b[1] - a[1]);
+    if (!parts.length) throw new Error("pie : aucune valeur numérique dans y.");
+    if (parts.length > 6) {
+      const rest = parts.slice(5);
+      notes.push(`${rest.length} catégories regroupées dans « Autres » (${rest.map(([k]) => k).join(", ")}).`);
+      parts = [...parts.slice(0, 5), ["Autres", rest.reduce((a, [, v]) => a + v, 0)]];
+    }
+    if (ci >= 0 || fi >= 0) notes.push("color_by / facet_by ignorés pour un graphique en anneau.");
+    return {
+      ...base,
+      series: [{ key: "y0", label: labels[0] ?? humanize(src.columns[ys[0]]) }],
+      data: parts.map(([label, v]) => ({ label, x: label, y0: v })),
+      note: notes.join(" ") || undefined,
+    };
+  }
+
   // ── Combiné : 2 indicateurs d'unités différentes, deux panneaux alignés sur le même X ──
   let unit2: ChartUnit | undefined;
   if (type === "combo") {
@@ -204,6 +229,12 @@ export function buildChart(src: ChartSource, args: Record<string, unknown>, id: 
     facets = values.map((v) => ({ label: v, data: build(rows.filter((r) => str(r[fi]) === v)) }));
   } else {
     data = build(rows);
+    // Classement en barres non trié par la requête : du plus grand au plus petit (lecture immédiate).
+    if (type === "bar" && series.length === 1 && !isNumericList(data.map((d) => String(d.x)))) {
+      const vals = data.map((d) => (typeof d[series[0].key] === "number" ? (d[series[0].key] as number) : -Infinity));
+      const sorted = vals.every((v, i) => i === 0 || v <= vals[i - 1]) || vals.every((v, i) => i === 0 || v >= vals[i - 1]);
+      if (!sorted) data.sort((a, b) => ((b[series[0].key] as number) ?? -Infinity) - ((a[series[0].key] as number) ?? -Infinity));
+    }
     const categories = new Set(rows.map((r) => str(r[xi]))).size;
     if (type === "scatter" ? rows.length > limit : categories > limit) {
       notes.push(`Affichage limité aux ${limit} premiers ${type === "scatter" ? "points" : "éléments"} sur ${type === "scatter" ? rows.length : categories}.`);

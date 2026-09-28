@@ -1,8 +1,8 @@
 // Types partagés serveur / client pour l'agent.
 
 export type ChartUnit = "count" | "pct" | "ratio";
-export type ChartType = "bar" | "stacked_bar" | "column" | "stacked_column" | "line" | "scatter" | "combo" | "heatmap";
-export const CHART_TYPES: ChartType[] = ["bar", "stacked_bar", "column", "stacked_column", "line", "scatter", "combo", "heatmap"];
+export type ChartType = "bar" | "stacked_bar" | "column" | "stacked_column" | "line" | "scatter" | "combo" | "heatmap" | "pie";
+export const CHART_TYPES: ChartType[] = ["bar", "stacked_bar", "column", "stacked_column", "line", "scatter", "combo", "heatmap", "pie"];
 
 export type ChartRow = Record<string, string | number | null>;
 

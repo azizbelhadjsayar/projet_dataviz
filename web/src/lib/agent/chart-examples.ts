@@ -113,4 +113,14 @@ WHERE session = 2025 AND type_formation = 'Licence' GROUP BY 1 ORDER BY 2 DESC`,
       subtitle: "Vœux en phase principale · session 2025",
     },
   },
+{
+    name: "Répartition en anneau (pie)",
+    question: "Fais un graphique en cercle de la répartition du total des vœux par type de formation sur les 5 sessions.",
+    sql: `SELECT type_formation, sum(voeux_pp) AS voeux_pp FROM formations GROUP BY 1`,
+    args: {
+      type: "pie", x: "type_formation", y: ["voeux_pp"], unit: "count", series_labels: ["Vœux PP 2021-2025"],
+      title: "Répartition des vœux par type de formation",
+      subtitle: "Total des vœux en phase principale, sessions 2021 à 2025",
+    },
+  },
 ];

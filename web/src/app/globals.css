@@ -30,6 +30,7 @@
   --series-2: #eb6834; /* orange */
   --series-3: #1baf7a; /* aqua */
   --series-4: #eda100; /* jaune */
+  --series-5: #e87ba4; /* magenta (5e part d'un anneau) */
   --neutral: #c3c2b7;
 
   /* Rampe ordinale (mentions) - clair -> foncé */
@@ -77,6 +78,7 @@
     --series-2: #d95926;
     --series-3: #199e70;
     --series-4: #c98500;
+    --series-5: #d55181;
     --neutral: #5a5955;
     --ord-1: #9ec5f4;
     --ord-2: #6da7ec;
@@ -119,6 +121,7 @@
   --series-2: #d95926;
   --series-3: #199e70;
   --series-4: #c98500;
+  --series-5: #d55181;
   --neutral: #5a5955;
   --ord-1: #9ec5f4;
   --ord-2: #6da7ec;
