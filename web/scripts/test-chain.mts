@@ -5,7 +5,7 @@ import http from "node:http";
 type Captured = { server: string; key: string; body: Record<string, unknown> };
 const captured: Captured[] = [];
 /** normal : Gemini épuisé (par minute), clé Groq A épuisée ; daily : quota du jour épuisé partout ; minute : 429 courts partout. */
-let mode: "normal" | "daily" | "minute" = "normal";
+let mode: "normal" | "daily" | "minute" | "toolfail" = "normal";
 const daily429 = (res: http.ServerResponse) => {
   res.writeHead(429, { "Content-Type": "application/json" });
   res.end(JSON.stringify([{ error: { code: 429, status: "RESOURCE_EXHAUSTED", details: [{ quotaId: "GenerateRequestsPerDayPerProjectPerModel-FreeTier" }, { retryDelay: "15s" }] } }]));
@@ -43,6 +43,18 @@ const gemini = serve("gemini", (_key, res) => {
 const groq = serve("groq", (key, res) => {
   if (mode === "daily") return daily429(res);
   if (mode === "minute") return minute429(res);
+  if (mode === "toolfail") {
+    const model = String(captured[captured.length - 1].body.model);
+    if (model === "openai/gpt-oss-120b") {
+      res.writeHead(429, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: { message: "Rate limit reached for model on tokens per minute (TPM): Limit 8000, Used 7000, Requested 5400. Please try again in 28s.", code: "rate_limit_exceeded" } }));
+    }
+    if (model === "openai/gpt-oss-20b") {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: { message: "Failed to call a function.", type: "invalid_request_error", code: "tool_use_failed", failed_generation: "<tool_call>…" } }));
+    }
+    return ok(res, `Réponse ${model}`);
+  }
   if (key === "gsk_A") { // clé A : quota épuisé
     res.writeHead(429, { "Content-Type": "application/json", "retry-after": "30" });
     return res.end(JSON.stringify({ error: { message: "Rate limit reached. Please try again in 30s.", type: "tokens", code: "rate_limit_exceeded" } }));
@@ -108,6 +120,30 @@ async function expectError(label: string, m: typeof mode) {
 }
 await expectError("3) Quota du JOUR épuisé partout : arrêt immédiat, message explicite", "daily");
 await expectError("4) Quota par minute épuisé partout : chaque accès repris une seule fois, puis arrêt", "minute");
+
+// 5) Gemini épuisé du jour, gpt-oss-120b limité (TPM), gpt-oss-20b mal forme son appel d'outil : Qwen doit répondre.
+//    Et l'historique d'une longue conversation doit être allégé pour Groq (dernier échange seulement).
+resetAccessState();
+mode = "toolfail";
+const longHistory = [
+  { role: "system" as const, content: "PROMPT COMPLET" },
+  ...Array.from({ length: 6 }, (_, k) => [
+    { role: "user" as const, content: `Question ancienne ${k + 1}` },
+    { role: "assistant" as const, content: `Réponse ancienne ${k + 1} ` + "x".repeat(3000) },
+  ]).flat(),
+  { role: "user" as const, content: "Fais un graphique résumant ça" },
+];
+let answer5 = "";
+let from5 = "";
+for await (const ev of streamCompletion(longHistory, [], undefined, { compactSystem: "PROMPT COMPACT" })) {
+  if (ev.type === "delta") answer5 += ev.text; else from5 = `${ev.provider} ${ev.model}`;
+}
+const toQwen = captured.filter((c) => c.server === "groq" && c.body.model === "qwen/qwen3.8-27b").at(-1)!;
+const sent = toQwen.body.messages as { role: string; content: string }[];
+console.log(`\n5) Appel d'outil mal formé + historique long\n  parcours : ${captured.map((c) => `${c.server}:${String(c.body.model).replace("openai/", "")}`).join(" → ")}`);
+console.log(`  réponse : ${from5} « ${answer5} »`);
+console.log(`  historique envoyé à Groq : ${sent.length} messages (sur ${longHistory.length}) · plus long : ${Math.max(...sent.map((m) => (m.content ?? "").length))} car. · question conservée : ${sent.at(-1)?.content === "Fais un graphique résumant ça"}`);
+captured.length = 0;
 
 gemini.close();
 groq.close();

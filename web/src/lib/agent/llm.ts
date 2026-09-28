@@ -46,7 +46,7 @@ const GROQ_URL = process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1";
 const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite"];
 const GEMINI_UTILITY = ["gemini-3.5-flash-lite", "gemini-3.7-flash"];
 // Modèles de conversation disponibles chez Groq (les Llama 3.x ont été retirés).
-const GROQ_MODELS = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"];
+const GROQ_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"]; // Qwen en dernier : appels d'outils moins fiables
 const GROQ_UTILITY = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
 /** Limites de tokens par minute du tier gratuit Groq (une requête plus grosse est refusée d'office). */
 const GROQ_TPM: Record<string, number> = {
@@ -215,7 +215,7 @@ function merge(target: Record<string, unknown>, src: Record<string, unknown>) {
  *  - accès « compact » : prompt compact et résultats d'outils raccourcis.
  */
 function prepare(messages: LlmMessage[], route: Route, compactSystem?: string): LlmMessage[] {
-  return messages.map((m, i) => {
+  return compactHistory(messages, route).map((m, i) => {
     if (i === 0 && m.role === "system" && route.compact && compactSystem) return { role: "system", content: compactSystem };
     if (m.role === "assistant") {
       const toolCalls = m.tool_calls?.map((tc) => {
@@ -236,6 +236,25 @@ function prepare(messages: LlmMessage[], route: Route, compactSystem?: string): 
     }
     return m;
   });
+}
+
+/**
+ * Accès « compact » (quota de ~8 000 tokens/min) : on ne garde que le DERNIER échange des tours précédents,
+ * raccourci — la mémoire résumée (dans le prompt système) couvre le reste. Le tour en cours (question,
+ * appels d'outils et résultats) est conservé intégralement.
+ */
+function compactHistory(messages: LlmMessage[], route: Route): LlmMessage[] {
+  if (!route.compact) return messages;
+  const firstTool = messages.findIndex((m) => m.role === "tool" || (m.role === "assistant" && m.tool_calls?.length));
+  const end = firstTool < 0 ? messages.length : firstTool;
+  let question = -1; // question en cours = dernier message utilisateur avant le premier appel d'outil
+  for (let i = end - 1; i > 0; i--) if (messages[i].role === "user") { question = i; break; }
+  if (question <= 1) return messages;
+  const past = messages.slice(1, question).slice(-2).map((m): LlmMessage =>
+    m.role === "user" || m.role === "assistant"
+      ? { ...m, content: (m.content ?? "").length > 900 ? `${(m.content ?? "").slice(0, 900)}…` : m.content ?? "" } as LlmMessage
+      : m);
+  return [messages[0], ...past, ...messages.slice(question)];
 }
 
 const estimateTokens = (body: unknown) => Math.round(JSON.stringify(body).length / 3.4);
@@ -318,12 +337,18 @@ export async function* streamCompletion(
       const text = await res.text();
       lastError = `${tag} → HTTP ${res.status} : ${text.slice(0, 400)}`;
       // Quota précis (ex. GenerateRequestsPerDayPerProjectPerModel-FreeTier) : utile au diagnostic.
-      const quota = text.match(/"quotaId"\s*:\s*"([^"]+)"/)?.[1];
+      const tpm = text.match(/Limit (\d+), Used (\d+), Requested (\d+)/);
+      const quota = text.match(/"quotaId"\s*:\s*"([^"]+)"/)?.[1] ?? (tpm ? `TPM limite ${tpm[1]}, utilisés ${tpm[2]}, demandés ${tpm[3]}` : undefined);
       console.warn(`[agent] ${tag} → HTTP ${res.status}${quota ? ` · quota ${quota}` : ""} : ${text.replace(/\s+/g, " ").slice(0, 160)}`);
       if (res.status === 401 || res.status === 403) {
         // Clé invalide : on ne bloque pas toute la chaîne s'il reste d'autres accès.
         if (routes.length > 1) { cooldown.set(route.id, Date.now() + 10 * 60_000); continue; }
         throw new LlmError(`Clé API refusée (${res.status}) pour ${route.providerLabel}. Vérifiez web/.env.local.`);
+      }
+      if (res.status === 400 && /tool_use_failed|failed_generation|Failed to call a function/i.test(text)) {
+        // Le modèle a mal formé son appel d'outil : on l'écarte pour cette requête et on passe au suivant.
+        tooLarge.add(route.model);
+        continue;
       }
       if (!retryable(res.status, text)) throw new LlmError(lastError);
       if (res.status === 413 || /too large|reduce your message size|context_length/i.test(text)) {
