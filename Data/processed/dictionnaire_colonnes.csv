@@ -1,0 +1,80 @@
+﻿colonne,type,description,colonne_source,valeurs_manquantes
+session,Int64,Année de la session Parcoursup,Session,0
+cod_aff_form,string,Identifiant Parcoursup de la formation (stable d'une session à l'autre),COD_AFF_FORM (2021) / cod_aff_form (2022+),0
+statut_etablissement,string,Statut détaillé de l'établissement,"Statut de l’établissement de la filière de formation (public, privé…)",0
+secteur,string,Public / Privé (déduit du statut),calculée,0
+code_uai,string,Code UAI de l'établissement,Code UAI de l'établissement,0
+etablissement,string,Nom de l'établissement,Établissement,0
+code_departement,string,Code du département,Code départemental de l’établissement,0
+departement,string,Département,Département de l’établissement,3
+region,string,Région (libellés harmonisés),Région de l’établissement,0
+zone,string,Métropole / Outre-mer / Étranger,calculée,0
+academie,string,Académie (libellés harmonisés),Académie de l’établissement,0
+commune,string,Commune,Commune de l’établissement,0
+latitude,Float64,Latitude (depuis 'Coordonnées GPS de la formation'),calculée,345
+longitude,Float64,Longitude,calculée,345
+type_formation,string,"Grand type de formation (BTS, Licence, CPGE, BUT...)",Filière de formation très agrégée,0
+filiere,string,"Filière agrégée (ex. 'BTS - Services', 'Licence - Sciences humaines et sociales')","Filière de formation (2e occurrence en 2022+, 1re en 2021)",0
+formation,string,Intitulé de la formation (ex. 'Licence - Sociologie'),"Filière de formation (1re occurrence en 2022+, 2e en 2021)",0
+mention_specialite,string,Mention / spécialité,Filière de formation détaillée bis,0
+parcours,string,Parcours / option (souvent vide),Filière de formation très détaillée,48649
+selectivite,string,Sélective / Non sélective,Sélectivité,0
+concours,string,Concours commun éventuel,Concours communs et banque d'épreuves,65734
+lien_parcoursup,string,URL de la fiche Parcoursup,Lien de la formation sur la plateforme Parcoursup,894
+capacite,Int64,Nombre de places proposées,Capacité de l’établissement par formation,0
+voeux_total,Int64,Vœux reçus (phase principale + complémentaire),Effectif total des candidats pour une formation,0
+voeux_filles,Int64,Dont vœux de candidates,Dont effectif des candidates pour une formation,0
+voeux_pp,Int64,Vœux en phase principale,Effectif total des candidats en phase principale,0
+voeux_pp_internat,Int64,Dont vœux avec demande d'internat,Dont effectif des candidats ayant postulé en internat,64347
+voeux_pp_bac_general,Int64,Vœux PP de néo-bacheliers généraux,Effectif des candidats néo bacheliers généraux en phase principale,0
+voeux_pp_bac_general_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers néo bacheliers généraux en phase principale,0
+voeux_pp_bac_techno,Int64,Vœux PP de néo-bacheliers technologiques,Effectif des candidats néo bacheliers technologiques en phase principale,0
+voeux_pp_bac_techno_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers néo bacheliers technologiques en phase principale,0
+voeux_pp_bac_pro,Int64,Vœux PP de néo-bacheliers professionnels,Effectif des candidats néo bacheliers professionnels en phase principale,0
+voeux_pp_bac_pro_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers néo bacheliers professionnels en phase principale,0
+voeux_pp_autres,Int64,"Vœux PP des autres candidats (réorientation, étrangers...)",Effectif des autres candidats en phase principale,0
+voeux_pc,Int64,Vœux en phase complémentaire,Effectif total des candidats en phase complémentaire,0
+classes_pp,Int64,Candidats classés en phase principale,Effectif total des candidats classés par l’établissement en phase principale,0
+classes_pc,Int64,Candidats classés en phase complémentaire,Effectif des candidats classés par l’établissement en phase complémentaire,0
+classes_bac_general,Int64,Classés néo-bacheliers généraux,Effectif des candidats néo bacheliers généraux classés par l’établissement,0
+classes_bac_general_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers néo bacheliers généraux classés par l’établissement,0
+classes_bac_techno,Int64,Classés néo-bacheliers technologiques,Effectif des candidats néo bacheliers technologiques classés par l’établissement,0
+classes_bac_techno_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers néo bacheliers technologiques classés par l’établissement,0
+classes_bac_pro,Int64,Classés néo-bacheliers professionnels,Effectif des candidats néo bacheliers professionnels classés par l’établissement,0
+classes_bac_pro_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers néo bacheliers professionnels classés par l’établissement,0
+classes_autres,Int64,Classés autres candidats,Effectif des autres candidats classés par l’établissement,0
+propositions_total,Int64,Candidats ayant reçu une proposition,Effectif total des candidats ayant reçu une proposition d’admission de la part de l’établissement,0
+propositions_term_general,Int64,Propositions à des terminales générales,Effectif des candidats en terminale générale ayant reçu une proposition d’admission de la part de l’établissement,0
+propositions_term_general_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers en terminale générale ayant reçu une proposition d’admission de la part de l’établissement,0
+propositions_term_techno,Int64,Propositions à des terminales technologiques,Effectif des candidats en terminale technologique ayant reçu une proposition d’admission de la part de l’établissement,0
+propositions_term_techno_boursiers,Int64,dont boursiers,Dont effectif des candidats boursiers en terminale technologique ayant reçu une proposition d’admission de la part de l’établissement,0
+propositions_term_pro,Int64,Propositions à des terminales professionnelles,Effectif des candidats en terminale professionnelle ayant reçu une proposition d’admission de la part de l’établissement,0
+propositions_term_pro_boursiers,Int64,dont boursiers (libellé source erroné : 'générale professionnelle'),Dont effectif des candidats boursiers en terminale générale professionnelle ayant reçu une proposition d’admission de la part de l’établissement,0
+propositions_autres,Int64,Propositions aux autres candidats,Effectif des autres candidats ayant reçu une proposition d’admission de la part de l’établissement,0
+admis_total,Int64,Admis (proposition acceptée),Effectif total des candidats ayant accepté la proposition de l’établissement (admis),0
+admis_filles,Int64,dont admises,Dont effectif des candidates admises,0
+admis_pp,Int64,Admis en phase principale,Effectif des admis en phase principale,0
+admis_pc,Int64,Admis en phase complémentaire,Effectif des admis en phase complémentaire,0
+admis_prop_ouverture_pp,Int64,Admis ayant reçu leur proposition dès l'ouverture,Dont effectif des admis ayant reçu leur proposition d’admission à l'ouverture de la procédure principale,0
+admis_prop_avant_bac,Int64,Admis ayant reçu leur proposition avant le bac,Dont effectif des admis ayant reçu leur proposition d’admission avant le baccalauréat,0
+admis_prop_avant_fin_pp,Int64,Admis ayant reçu leur proposition avant la fin de la PP,Dont effectif des admis ayant reçu leur proposition d’admission avant la fin de la procédure principale,0
+admis_internat,Int64,dont admis en internat,Dont effectif des admis en internat,64347
+admis_boursiers_neobac,Int64,Admis néo-bacheliers boursiers,Dont effectif des admis boursiers néo bacheliers,0
+admis_neobac,Int64,Admis néo-bacheliers,Effectif des admis néo bacheliers,0
+admis_bac_general,Int64,Admis néo-bacheliers généraux,Effectif des admis néo bacheliers généraux,0
+admis_bac_techno,Int64,Admis néo-bacheliers technologiques,Effectif des admis néo bacheliers technologiques,0
+admis_bac_pro,Int64,Admis néo-bacheliers professionnels,Effectif des admis néo bacheliers professionnels,0
+admis_autres,Int64,Autres admis (non néo-bacheliers),Effectif des autres candidats admis,0
+admis_mention_inconnue,Int64,Admis néo-bac : mention inconnue,Dont effectif des admis néo bacheliers sans information sur la mention au bac,0
+admis_sans_mention,Int64,Admis néo-bac : sans mention,Dont effectif des admis néo bacheliers sans mention au bac,0
+admis_mention_ab,Int64,Admis néo-bac : mention AB,Dont effectif des admis néo bacheliers avec mention Assez Bien au bac,0
+admis_mention_b,Int64,Admis néo-bac : mention B,Dont effectif des admis néo bacheliers avec mention Bien au bac,0
+admis_mention_tb,Int64,Admis néo-bac : mention TB,Dont effectif des admis néo bacheliers avec mention Très Bien au bac,0
+admis_mention_tbf,Int64,Admis néo-bac : mention TB félicitations,Dont effectif des admis néo bacheliers avec mention Très Bien avec félicitations au bac,0
+admis_mention_bac_general,Int64,Admis bac général avec mention,Effectif des admis néo bacheliers généraux ayant eu une mention au bac,0
+admis_mention_bac_techno,Int64,Admis bac techno avec mention,Effectif des admis néo bacheliers technologiques ayant eu une mention au bac,0
+admis_mention_bac_pro,Int64,Admis bac pro avec mention,Effectif des admis néo bacheliers professionnels ayant eu une mention au bac,0
+admis_meme_etablissement,Int64,Admis issus du même lycée (BTS/CPGE),Dont effectif des admis issus du même établissement (BTS/CPGE),37763
+admis_meme_academie,Int64,Admis issus de la même académie,Dont effectif des admis issus de la même académie,0
+admis_meme_academie_pcv,Int64,"Idem, Paris/Créteil/Versailles réunies",Dont effectif des admis issus de la même académie (Paris/Créteil/Versailles réunies),0
+taux_acces,Float64,Taux d'accès (%) : part des candidats ayant pu recevoir une proposition. Définition source différente en 2021,Taux d’accès des candidats ayant postulé à la formation (ratio entre le dernier appelé et le nombre vœux PP) (2021) / Taux d’accès (2022+),544

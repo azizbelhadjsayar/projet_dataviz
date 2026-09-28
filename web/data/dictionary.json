@@ -1,0 +1,397 @@
+[
+ {
+  "name": "session",
+  "type": "INTEGER",
+  "description": "Année de la session Parcoursup"
+ },
+ {
+  "name": "cod_aff_form",
+  "type": "VARCHAR",
+  "description": "Identifiant Parcoursup de la formation (stable d'une session à l'autre)"
+ },
+ {
+  "name": "statut_etablissement",
+  "type": "VARCHAR",
+  "description": "Statut détaillé de l'établissement"
+ },
+ {
+  "name": "secteur",
+  "type": "VARCHAR",
+  "description": "Public / Privé (déduit du statut)"
+ },
+ {
+  "name": "code_uai",
+  "type": "VARCHAR",
+  "description": "Code UAI de l'établissement"
+ },
+ {
+  "name": "etablissement",
+  "type": "VARCHAR",
+  "description": "Nom de l'établissement"
+ },
+ {
+  "name": "code_departement",
+  "type": "VARCHAR",
+  "description": "Code du département"
+ },
+ {
+  "name": "departement",
+  "type": "VARCHAR",
+  "description": "Département"
+ },
+ {
+  "name": "region",
+  "type": "VARCHAR",
+  "description": "Région (libellés harmonisés)"
+ },
+ {
+  "name": "zone",
+  "type": "VARCHAR",
+  "description": "Métropole / Outre-mer / Étranger"
+ },
+ {
+  "name": "academie",
+  "type": "VARCHAR",
+  "description": "Académie (libellés harmonisés)"
+ },
+ {
+  "name": "commune",
+  "type": "VARCHAR",
+  "description": "Commune"
+ },
+ {
+  "name": "latitude",
+  "type": "DOUBLE",
+  "description": "Latitude (depuis 'Coordonnées GPS de la formation')"
+ },
+ {
+  "name": "longitude",
+  "type": "DOUBLE",
+  "description": "Longitude"
+ },
+ {
+  "name": "type_formation",
+  "type": "VARCHAR",
+  "description": "Grand type de formation (BTS, Licence, CPGE, BUT...)"
+ },
+ {
+  "name": "filiere",
+  "type": "VARCHAR",
+  "description": "Filière agrégée (ex. 'BTS - Services', 'Licence - Sciences humaines et sociales')"
+ },
+ {
+  "name": "formation",
+  "type": "VARCHAR",
+  "description": "Intitulé de la formation (ex. 'Licence - Sociologie')"
+ },
+ {
+  "name": "mention_specialite",
+  "type": "VARCHAR",
+  "description": "Mention / spécialité"
+ },
+ {
+  "name": "parcours",
+  "type": "VARCHAR",
+  "description": "Parcours / option (souvent vide)"
+ },
+ {
+  "name": "selectivite",
+  "type": "VARCHAR",
+  "description": "Sélective / Non sélective"
+ },
+ {
+  "name": "concours",
+  "type": "VARCHAR",
+  "description": "Concours commun éventuel"
+ },
+ {
+  "name": "lien_parcoursup",
+  "type": "VARCHAR",
+  "description": "URL de la fiche Parcoursup"
+ },
+ {
+  "name": "capacite",
+  "type": "INTEGER",
+  "description": "Nombre de places proposées"
+ },
+ {
+  "name": "voeux_total",
+  "type": "INTEGER",
+  "description": "Vœux reçus (phase principale + complémentaire)"
+ },
+ {
+  "name": "voeux_filles",
+  "type": "INTEGER",
+  "description": "Dont vœux de candidates"
+ },
+ {
+  "name": "voeux_pp",
+  "type": "INTEGER",
+  "description": "Vœux en phase principale"
+ },
+ {
+  "name": "voeux_pp_internat",
+  "type": "INTEGER",
+  "description": "Dont vœux avec demande d'internat"
+ },
+ {
+  "name": "voeux_pp_bac_general",
+  "type": "INTEGER",
+  "description": "Vœux PP de néo-bacheliers généraux"
+ },
+ {
+  "name": "voeux_pp_bac_general_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "voeux_pp_bac_techno",
+  "type": "INTEGER",
+  "description": "Vœux PP de néo-bacheliers technologiques"
+ },
+ {
+  "name": "voeux_pp_bac_techno_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "voeux_pp_bac_pro",
+  "type": "INTEGER",
+  "description": "Vœux PP de néo-bacheliers professionnels"
+ },
+ {
+  "name": "voeux_pp_bac_pro_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "voeux_pp_autres",
+  "type": "INTEGER",
+  "description": "Vœux PP des autres candidats (réorientation, étrangers...)"
+ },
+ {
+  "name": "voeux_pc",
+  "type": "INTEGER",
+  "description": "Vœux en phase complémentaire"
+ },
+ {
+  "name": "classes_pp",
+  "type": "INTEGER",
+  "description": "Candidats classés en phase principale"
+ },
+ {
+  "name": "classes_pc",
+  "type": "INTEGER",
+  "description": "Candidats classés en phase complémentaire"
+ },
+ {
+  "name": "classes_bac_general",
+  "type": "INTEGER",
+  "description": "Classés néo-bacheliers généraux"
+ },
+ {
+  "name": "classes_bac_general_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "classes_bac_techno",
+  "type": "INTEGER",
+  "description": "Classés néo-bacheliers technologiques"
+ },
+ {
+  "name": "classes_bac_techno_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "classes_bac_pro",
+  "type": "INTEGER",
+  "description": "Classés néo-bacheliers professionnels"
+ },
+ {
+  "name": "classes_bac_pro_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "classes_autres",
+  "type": "INTEGER",
+  "description": "Classés autres candidats"
+ },
+ {
+  "name": "propositions_total",
+  "type": "INTEGER",
+  "description": "Candidats ayant reçu une proposition"
+ },
+ {
+  "name": "propositions_term_general",
+  "type": "INTEGER",
+  "description": "Propositions à des terminales générales"
+ },
+ {
+  "name": "propositions_term_general_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "propositions_term_techno",
+  "type": "INTEGER",
+  "description": "Propositions à des terminales technologiques"
+ },
+ {
+  "name": "propositions_term_techno_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers"
+ },
+ {
+  "name": "propositions_term_pro",
+  "type": "INTEGER",
+  "description": "Propositions à des terminales professionnelles"
+ },
+ {
+  "name": "propositions_term_pro_boursiers",
+  "type": "INTEGER",
+  "description": "dont boursiers (libellé source erroné : 'générale professionnelle')"
+ },
+ {
+  "name": "propositions_autres",
+  "type": "INTEGER",
+  "description": "Propositions aux autres candidats"
+ },
+ {
+  "name": "admis_total",
+  "type": "INTEGER",
+  "description": "Admis (proposition acceptée)"
+ },
+ {
+  "name": "admis_filles",
+  "type": "INTEGER",
+  "description": "dont admises"
+ },
+ {
+  "name": "admis_pp",
+  "type": "INTEGER",
+  "description": "Admis en phase principale"
+ },
+ {
+  "name": "admis_pc",
+  "type": "INTEGER",
+  "description": "Admis en phase complémentaire"
+ },
+ {
+  "name": "admis_prop_ouverture_pp",
+  "type": "INTEGER",
+  "description": "Admis ayant reçu leur proposition dès l'ouverture"
+ },
+ {
+  "name": "admis_prop_avant_bac",
+  "type": "INTEGER",
+  "description": "Admis ayant reçu leur proposition avant le bac"
+ },
+ {
+  "name": "admis_prop_avant_fin_pp",
+  "type": "INTEGER",
+  "description": "Admis ayant reçu leur proposition avant la fin de la PP"
+ },
+ {
+  "name": "admis_internat",
+  "type": "INTEGER",
+  "description": "dont admis en internat"
+ },
+ {
+  "name": "admis_boursiers_neobac",
+  "type": "INTEGER",
+  "description": "Admis néo-bacheliers boursiers"
+ },
+ {
+  "name": "admis_neobac",
+  "type": "INTEGER",
+  "description": "Admis néo-bacheliers"
+ },
+ {
+  "name": "admis_bac_general",
+  "type": "INTEGER",
+  "description": "Admis néo-bacheliers généraux"
+ },
+ {
+  "name": "admis_bac_techno",
+  "type": "INTEGER",
+  "description": "Admis néo-bacheliers technologiques"
+ },
+ {
+  "name": "admis_bac_pro",
+  "type": "INTEGER",
+  "description": "Admis néo-bacheliers professionnels"
+ },
+ {
+  "name": "admis_autres",
+  "type": "INTEGER",
+  "description": "Autres admis (non néo-bacheliers)"
+ },
+ {
+  "name": "admis_mention_inconnue",
+  "type": "INTEGER",
+  "description": "Admis néo-bac : mention inconnue"
+ },
+ {
+  "name": "admis_sans_mention",
+  "type": "INTEGER",
+  "description": "Admis néo-bac : sans mention"
+ },
+ {
+  "name": "admis_mention_ab",
+  "type": "INTEGER",
+  "description": "Admis néo-bac : mention AB"
+ },
+ {
+  "name": "admis_mention_b",
+  "type": "INTEGER",
+  "description": "Admis néo-bac : mention B"
+ },
+ {
+  "name": "admis_mention_tb",
+  "type": "INTEGER",
+  "description": "Admis néo-bac : mention TB"
+ },
+ {
+  "name": "admis_mention_tbf",
+  "type": "INTEGER",
+  "description": "Admis néo-bac : mention TB félicitations"
+ },
+ {
+  "name": "admis_mention_bac_general",
+  "type": "INTEGER",
+  "description": "Admis bac général avec mention"
+ },
+ {
+  "name": "admis_mention_bac_techno",
+  "type": "INTEGER",
+  "description": "Admis bac techno avec mention"
+ },
+ {
+  "name": "admis_mention_bac_pro",
+  "type": "INTEGER",
+  "description": "Admis bac pro avec mention"
+ },
+ {
+  "name": "admis_meme_etablissement",
+  "type": "INTEGER",
+  "description": "Admis issus du même lycée (BTS/CPGE)"
+ },
+ {
+  "name": "admis_meme_academie",
+  "type": "INTEGER",
+  "description": "Admis issus de la même académie"
+ },
+ {
+  "name": "admis_meme_academie_pcv",
+  "type": "INTEGER",
+  "description": "Idem, Paris/Créteil/Versailles réunies"
+ },
+ {
+  "name": "taux_acces",
+  "type": "DOUBLE",
+  "description": "Taux d'accès (%) : part des candidats ayant pu recevoir une proposition. Définition source différente en 2021"
+ }
+]

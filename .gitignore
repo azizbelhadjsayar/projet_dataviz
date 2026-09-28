@@ -1,0 +1,36 @@
+# ── Secrets (clés API) : jamais dans le dépôt ──
+.env*
+!.env.example
+
+# ── Dépendances, builds, fichiers système ──
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Données dérivées volumineuses (régénérables : python scripts/01_fusion_parcoursup.py) ──
+Data/processed/parcoursup_2021_2025.csv
+Data/processed/parcoursup_2021_2025.xlsx
+# Ancien fichier fusionné (erroné, remplacé par Data/processed/)
+Data/parcoursup_merged.csv
+Data/parcoursup_merged.xlsx
+
+# ── Ancien projet « vols » (hors sujet), conservé en local uniquement ──
+Data/openflights/
+Data/powerbi_flights/
+dashboard/
+scripts/build_dashboard.py
+scripts/download_openflights.py
+scripts/explore_openflights.py
+scripts/prepare_powerbi_flights.py
+scripts/update_airports_2025.py
+# Anciens scripts Parcoursup, remplacés par 01_fusion_parcoursup.py et 02_export_app_data.py
+scripts/merge_parcoursup.py
+scripts/build_parcoursup_dashboard.py
+scripts/parcoursup_template.html
