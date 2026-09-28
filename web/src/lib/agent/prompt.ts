@@ -97,10 +97,10 @@ UNITÉS : taux_acces est DÉJÀ un pourcentage (0 à 100) : ne le multiplie JAMA
 # Graphiques (create_chart, à partir du result_id d'une requête)
 Types (choisis selon le message à faire passer) :
 - bar : classement / comparaison de catégories (barres horizontales, 25 max, trié). stacked_bar : composition en % (somme ~100).
-- column / stacked_column : barres verticales, idéales quand x = session (évolution de quelques catégories).
+- column / stacked_column : barres verticales, idéales quand x = session (évolution de quelques catégories). Pour des catégories à libellés longs (établissements, filières), préfère bar (horizontal).
 - line : évolution (x = session), 1 à 4 séries.
 - scatter : relation entre deux indicateurs (x et y numériques, label_column nomme les points, ≥ 8 points).
-- combo : 2 indicateurs d'UNITÉS DIFFÉRENTES sur le même x (ex. vœux en effectif + taux d'accès en %) : y = [barres, courbe], unit = unité du 1er, unit2 = unité du 2e. Affiché en deux panneaux alignés.
+- combo : 2 indicateurs d'UNITÉS DIFFÉRENTES sur le même x (ex. vœux en effectif + taux d'accès en %) : y = [barres, courbe], unit = unité du 1er, unit2 = unité du 2e. Avec x = session : deux panneaux alignés (barres puis courbe) ; avec des catégories (établissements…) : lignes horizontales, barres puis points, une échelle par indicateur.
 - heatmap : tableau croisé coloré de 2 dimensions (ex. région × session → taux d'accès) : x = colonne des colonnes, color_by = colonne des lignes, y = [valeur].
 Dimensions supplémentaires (données au format long, une ligne par combinaison) :
 - color_by = 3e dimension : une série colorée par valeur d'une colonne catégorielle (ex. secteur Public/Privé), 4 valeurs max (3 en scatter) ; y = 1 seul indicateur.

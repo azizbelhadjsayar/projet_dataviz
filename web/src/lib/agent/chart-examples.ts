@@ -89,4 +89,28 @@ FROM formations WHERE session = 2025 GROUP BY 1, 2 HAVING count(*) >= 10`,
       subtitle: "Filières (≥ 10 formations) · vœux par place (x) et taux d'accès moyen (y) · 2025",
     },
   },
+{
+    name: "Combiné sur des catégories (combo, disposition horizontale)",
+    question: "Montre les 10 écoles d'ingénieurs les plus demandées de 2021 à 2025 avec leur taux d'accès moyen.",
+    sql: `SELECT etablissement, sum(voeux_pp) AS voeux_pp, ${TAUX} AS taux_acces_moyen
+FROM formations WHERE type_formation = 'École d''ingénieurs'
+GROUP BY 1 ORDER BY 2 DESC LIMIT 10`,
+    args: {
+      type: "combo", x: "etablissement", y: ["voeux_pp", "taux_acces_moyen"], unit: "count", unit2: "pct",
+      series_labels: ["Vœux en phase principale", "Taux d'accès moyen"],
+      title: "Demande et accès des 10 écoles d'ingénieurs les plus demandées",
+      subtitle: "Total des vœux PP 2021-2025 (barres) et taux d'accès moyen pondéré (points) · une échelle par indicateur",
+    },
+  },
+  {
+    name: "Colonnes à libellés longs (inclinaison automatique)",
+    question: "Combien de vœux par filière de licence en 2025 ?",
+    sql: `SELECT filiere, sum(voeux_pp) AS voeux_pp FROM formations
+WHERE session = 2025 AND type_formation = 'Licence' GROUP BY 1 ORDER BY 2 DESC`,
+    args: {
+      type: "column", x: "filiere", y: ["voeux_pp"], unit: "count", series_labels: ["Vœux en phase principale"],
+      title: "Vœux par filière de licence",
+      subtitle: "Vœux en phase principale · session 2025",
+    },
+  },
 ];

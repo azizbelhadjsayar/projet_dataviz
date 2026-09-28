@@ -3,7 +3,7 @@
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Unit } from "@/lib/data/schema";
 import { fmtValue } from "@/lib/format";
-import { AXIS_TICK, ChartTooltip, Legend, truncate, type Series } from "./common";
+import { AXIS_TICK, categoryAxis, ChartTooltip, Legend, type Series } from "./common";
 
 interface Props {
   data: Record<string, string | number | null>[];
@@ -21,16 +21,16 @@ interface Props {
 /** Barres verticales (colonnes) groupées ou empilées ; valeur au sommet pour une seule série. */
 export function ColumnChart({ data, series, unit, stacked = false, height = 280, yDomain, hideLegend, syncId, hideXAxis }: Props) {
   const single = series.length === 1;
+  const axis = categoryAxis(data.map((d) => String(d.label ?? "")));
   const barSize = stacked || single ? Math.min(24, Math.max(8, 360 / Math.max(1, data.length))) : Math.min(14, Math.max(5, 200 / Math.max(1, data.length * series.length)));
   return (
     <div>
       {!hideLegend && <Legend series={series} />}
-      <div style={{ height }}>
+      <div style={{ height: height + (hideXAxis ? 0 : axis.extra) }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: single ? 18 : 6, right: 8, bottom: 0, left: 0 }} barGap={2} syncId={syncId}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
-            <XAxis dataKey="label" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: "var(--axis)" }} hide={hideXAxis}
-              interval={0} tickFormatter={(v: string) => truncate(String(v), data.length > 8 ? 10 : 18)} />
+            <XAxis dataKey="label" tick={axis.tick} height={axis.height} tickLine={false} axisLine={{ stroke: "var(--axis)" }} hide={hideXAxis} interval={0} />
             <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} width={52}
               domain={yDomain ?? (stacked && unit === "pct" ? [0, 100] : [0, "auto"])}
               tickFormatter={(v: number) => (unit === "pct" ? `${v} %` : fmtValue(v, unit, true))} />

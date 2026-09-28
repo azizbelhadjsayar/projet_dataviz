@@ -68,3 +68,24 @@ export function Legend({ series, shape = "rect" }: { series: Series[]; shape?: "
 }
 
 export const truncate = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+
+/**
+ * Axe X de catégories sans chevauchement : libellés droits s'ils tiennent, sinon inclinés (-35°)
+ * et raccourcis ; la hauteur de l'axe s'adapte (le libellé complet reste dans l'infobulle).
+ */
+export function categoryAxis(labels: string[]) {
+  const longest = Math.max(0, ...labels.map((l) => l.length));
+  const angled = labels.length > 12 || (labels.length > 5 && longest > 9) || (labels.length > 3 && longest > 16);
+  const maxChars = angled ? 22 : 18;
+  const height = angled ? Math.min(120, 18 + Math.min(longest, maxChars) * 5.2) : 30;
+  const tick = (props: { x?: number | string; y?: number | string; payload?: { value?: unknown } }) => {
+    const x = Number(props.x), y = Number(props.y);
+    const text = truncate(String(props.payload?.value ?? ""), maxChars);
+    return angled ? (
+      <text x={x} y={y} dy={8} textAnchor="end" transform={`rotate(-35, ${x}, ${y})`} fill="var(--muted)" fontSize={11}>{text}</text>
+    ) : (
+      <text x={x} y={y} dy={14} textAnchor="middle" fill="var(--muted)" fontSize={12}>{text}</text>
+    );
+  };
+  return { angled, height, tick, extra: angled ? height - 30 : 0 };
+}
