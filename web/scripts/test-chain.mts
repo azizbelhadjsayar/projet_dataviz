@@ -5,7 +5,7 @@ import http from "node:http";
 type Captured = { server: string; key: string; body: Record<string, unknown> };
 const captured: Captured[] = [];
 /** normal : Gemini épuisé (par minute), clé Groq A épuisée ; daily : quota du jour épuisé partout ; minute : 429 courts partout. */
-let mode: "normal" | "daily" | "minute" | "toolfail" = "normal";
+let mode: "normal" | "daily" | "minute" | "toolfail" | "gemini2" = "normal";
 const daily429 = (res: http.ServerResponse) => {
   res.writeHead(429, { "Content-Type": "application/json" });
   res.end(JSON.stringify([{ error: { code: 429, status: "RESOURCE_EXHAUSTED", details: [{ quotaId: "GenerateRequestsPerDayPerProjectPerModel-FreeTier" }, { retryDelay: "15s" }] } }]));
@@ -33,7 +33,8 @@ function serve(name: string, handler: (key: string, res: http.ServerResponse) =>
   });
 }
 
-const gemini = serve("gemini", (_key, res) => {
+const gemini = serve("gemini", (key, res) => {
+  if (mode === "gemini2") return key === "g_key1" ? daily429(res) : ok(res, `Réponse Gemini (${key})`);
   if (mode === "daily") return daily429(res);
   if (mode === "minute") return minute429(res);
   // Gemini : quota gratuit épuisé (délai conseillé 40 s)
@@ -144,6 +145,29 @@ console.log(`\n5) Appel d'outil mal formé + historique long\n  parcours : ${cap
 console.log(`  réponse : ${from5} « ${answer5} »`);
 console.log(`  historique envoyé à Groq : ${sent.length} messages (sur ${longHistory.length}) · plus long : ${Math.max(...sent.map((m) => (m.content ?? "").length))} car. · question conservée : ${sent.at(-1)?.content === "Fais un graphique résumant ça"}`);
 captured.length = 0;
+
+// 6) Deux clés Gemini : la clé 1 est épuisée du jour, la clé 2 répond. Un appel d'outil signé par la clé 1
+//    doit partir vers la clé 2 avec la signature NEUTRE, et le champ interne _origin ne doit jamais être envoyé.
+resetAccessState();
+mode = "gemini2";
+process.env.GEMINI_API_KEYS = "g_key1,g_key2";
+delete process.env.GEMINI_API_KEY;
+const signedHistory = [
+  { role: "system" as const, content: "PROMPT COMPLET" },
+  { role: "user" as const, content: "Question" },
+  { role: "assistant" as const, content: null, _origin: "gemini:1",
+    tool_calls: [{ id: "c1", type: "function" as const, function: { name: "run_sql", arguments: "{}" }, extra_content: { google: { thought_signature: "SIG_CLE_1" } } }] },
+  { role: "tool" as const, tool_call_id: "c1", name: "run_sql", content: "{}" },
+];
+let from6 = "";
+for (let run = 0; run < 2; run++) {
+  captured.length = 0;
+  for await (const ev of streamCompletion(signedHistory, [], undefined, {})) if (ev.type === "final") from6 = `${ev.provider} ${ev.model}`;
+  const toKey2 = captured.find((c) => c.key === "g_key2")!;
+  const asst = (toKey2.body.messages as Record<string, unknown>[]).find((m) => m.role === "assistant") as { tool_calls: { extra_content: { google: { thought_signature: string } } }[] };
+  console.log(`\n6.${run + 1}) Deux clés Gemini (clé 1 épuisée)\n  parcours : ${captured.map((c) => `${c.key}:${c.body.model}`).join(" → ")}`);
+  console.log(`  réponse : ${from6} · signature envoyée à la clé 2 : ${asst.tool_calls[0].extra_content.google.thought_signature} · _origin envoyé ? ${JSON.stringify(toKey2.body).includes("_origin")}`);
+}
 
 gemini.close();
 groq.close();

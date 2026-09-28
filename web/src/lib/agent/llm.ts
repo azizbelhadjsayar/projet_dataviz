@@ -60,12 +60,20 @@ function keys() {
   const env = process.env;
   return {
     custom: env.LLM_BASE_URL ? { baseUrl: env.LLM_BASE_URL.replace(/\/$/, ""), apiKey: env.LLM_API_KEY ?? "" } : null,
-    gemini: env.GEMINI_API_KEY?.trim() || "",
+    gemini: uniq([...list(env.GEMINI_API_KEYS), ...list(env.GEMINI_API_KEY)]),
     groq: uniq([...list(env.GROQ_API_KEYS), ...list(env.GROQ_API_KEY)]),
   };
 }
 
 let rotation = 0;
+let geminiRotation = 0;
+
+/** Clés numérotées, en commençant à un indice tournant (répartit la charge d'une requête à l'autre). */
+function rotated(keys: string[], offset: number) {
+  const all = keys.map((key, i) => ({ key, no: i + 1 }));
+  const start = all.length ? offset % all.length : 0;
+  return [...all.slice(start), ...all.slice(0, start)];
+}
 
 /** Chaîne d'accès ordonnée pour une requête (les clés Groq tournent d'une requête à l'autre). */
 function buildRoutes(kind: "agent" | "utility", rotate = true): Route[] {
@@ -82,28 +90,28 @@ function buildRoutes(kind: "agent" | "utility", rotate = true): Route[] {
   const geminiModels = kind === "utility"
     ? GEMINI_UTILITY
     : env.LLM_MODEL ? uniq([...list(env.LLM_MODEL), ...list(env.LLM_FALLBACK_MODELS)]) : GEMINI_MODELS;
-  const gemini: Route[] = k.gemini
-    ? geminiModels.map((model) => ({
-        id: `gemini:1:${model}`, provider: "gemini", providerLabel: "Gemini", baseUrl: GEMINI_URL, apiKey: k.gemini, keyNo: 1, model,
-        compact: false, reasoning: kind === "utility" ? "minimal" : env.LLM_REASONING_EFFORT || undefined,
-      }))
-    : [];
+  const geminiKeys = rotated(k.gemini, rotate ? geminiRotation++ : geminiRotation);
+  // Un groupe par modèle Gemini (toutes les clés, à tour de rôle).
+  const geminiFor = (model: string): Route[] => geminiKeys.map(({ key, no }) => ({
+    id: `gemini:${no}:${model}`, provider: "gemini", providerLabel: "Gemini", baseUrl: GEMINI_URL, apiKey: key, keyNo: no, model,
+    compact: false, reasoning: kind === "utility" ? "minimal" : env.LLM_REASONING_EFFORT || undefined,
+  }));
+  const gemini = geminiModels.map(geminiFor);
 
   const groqModels = kind === "utility" ? GROQ_UTILITY : env.GROQ_MODELS ? list(env.GROQ_MODELS) : GROQ_MODELS;
-  const all = k.groq.map((key, i) => ({ key, no: i + 1 }));
-  const start = all.length ? (rotate ? rotation++ : rotation) % all.length : 0;
-  const groqKeys = [...all.slice(start), ...all.slice(0, start)];
+  const groqKeys = rotated(k.groq, rotate ? rotation++ : rotation);
   const groqFor = (model: string): Route[] => groqKeys.map(({ key, no }) => ({
     id: `groq:${no}:${model}`, provider: "groq", providerLabel: "Groq", baseUrl: GROQ_URL, apiKey: key, keyNo: no, model,
     compact: true, maxRequestTokens: GROQ_TPM[model],
     reasoning: model.startsWith("openai/gpt-oss") ? "low" : undefined,
   }));
 
-  // Ordre : 2 meilleurs Gemini, puis 1er modèle Groq (toutes les clés), puis Gemini restants, puis Groq restants.
+  // Ordre : 2 meilleurs Gemini (toutes les clés), puis 1er modèle Groq (toutes les clés),
+  // puis Gemini restants, puis Groq restants.
   return [
-    ...gemini.slice(0, 2),
+    ...gemini.slice(0, 2).flat(),
     ...groqModels.slice(0, 1).flatMap(groqFor),
-    ...gemini.slice(2),
+    ...gemini.slice(2).flat(),
     ...groqModels.slice(1).flatMap(groqFor),
   ];
 }
@@ -117,7 +125,10 @@ export function llmSummary() {
     hasKey: agent.length > 0,
     label: primary?.providerLabel ?? "Aucun fournisseur",
     model: primary?.model ?? "",
-    fallback: k.groq.length && k.gemini ? `secours Groq · ${k.groq.length} clé${k.groq.length > 1 ? "s" : ""}` : "",
+    fallback: [
+      k.gemini.length > 1 ? `${k.gemini.length} clés Gemini` : "",
+      k.groq.length && k.gemini.length ? `secours Groq · ${k.groq.length} clé${k.groq.length > 1 ? "s" : ""}` : "",
+    ].filter(Boolean).join(" · "),
   };
 }
 
@@ -147,7 +158,7 @@ export function routeStatus(kind: "agent" | "utility" = "agent") {
 export async function probeKeys() {
   const k = keys();
   const targets = [
-    ...(k.gemini ? [{ provider: "Gemini", no: 1, baseUrl: GEMINI_URL, key: k.gemini }] : []),
+    ...k.gemini.map((key, i) => ({ provider: "Gemini", no: i + 1, baseUrl: GEMINI_URL, key })),
     ...k.groq.map((key, i) => ({ provider: "Groq", no: i + 1, baseUrl: GROQ_URL, key })),
     ...(k.custom ? [{ provider: "custom", no: 1, baseUrl: k.custom.baseUrl, key: k.custom.apiKey }] : []),
   ];
@@ -168,6 +179,8 @@ export type StreamEvent =
   | {
       type: "final"; content: string; toolCalls: ToolCall[]; extras: Record<string, unknown>;
       model: string; provider: string;
+      /** Accès ayant produit la réponse (ex. « gemini:2 ») : à conserver sur le message assistant (champ _origin). */
+      origin: string;
       /** Motif d'arrêt renvoyé par le fournisseur (stop, length, tool_calls…). */
       finishReason: string | null;
       /** Flux coupé avant la fin (erreur glissée dans le flux, pas de [DONE]). */
@@ -209,23 +222,33 @@ function merge(target: Record<string, unknown>, src: Record<string, unknown>) {
 
 /**
  * Messages adaptés au fournisseur visé :
- *  - Gemini : chaque appel d'outil doit porter une signature de raisonnement ; ceux produits par un autre
- *    modèle reçoivent la signature neutre acceptée par Google (« skip_thought_signature_validator ») ;
+ *  - Gemini : chaque appel d'outil doit porter une signature de raisonnement. Une signature n'est valable
+ *    que pour le projet Google qui l'a produite : si l'appel vient d'une autre clé (ou d'un autre modèle),
+ *    on envoie la signature neutre acceptée par Google (« skip_thought_signature_validator ») ;
  *  - autres : champs non standard retirés (extra_content, name…) ;
  *  - accès « compact » : prompt compact et résultats d'outils raccourcis.
+ * Le champ interne « _origin » (accès ayant produit le message) n'est jamais envoyé.
  */
 function prepare(messages: LlmMessage[], route: Route, compactSystem?: string): LlmMessage[] {
+  const here = originOf(route);
   return compactHistory(messages, route).map((m, i) => {
     if (i === 0 && m.role === "system" && route.compact && compactSystem) return { role: "system", content: compactSystem };
     if (m.role === "assistant") {
+      const { _origin, ...rest } = m as typeof m & { _origin?: string };
+      const sameOrigin = _origin === here;
       const toolCalls = m.tool_calls?.map((tc) => {
         const base = { id: tc.id, type: "function" as const, function: { name: tc.function.name, arguments: tc.function.arguments } };
         if (route.provider !== "gemini") return base;
-        const sig = (tc.extra_content as { google?: { thought_signature?: string } } | undefined)?.google?.thought_signature
-          ?? "skip_thought_signature_validator";
-        return { ...base, extra_content: { google: { thought_signature: sig } } };
+        const sig = sameOrigin
+          ? (tc.extra_content as { google?: { thought_signature?: string } } | undefined)?.google?.thought_signature
+          : undefined;
+        return { ...base, extra_content: { google: { thought_signature: sig ?? "skip_thought_signature_validator" } } };
       });
-      if (route.provider === "gemini") return toolCalls ? { ...m, tool_calls: toolCalls } : m;
+      if (route.provider === "gemini") {
+        // Autre origine : on ne renvoie que le contenu standard (pas de signatures d'un autre projet).
+        const msg = sameOrigin ? rest : { role: "assistant" as const, content: m.content ?? null };
+        return toolCalls ? { ...msg, tool_calls: toolCalls } : msg;
+      }
       return toolCalls?.length
         ? { role: "assistant", content: m.content ?? null, tool_calls: toolCalls }
         : { role: "assistant", content: m.content ?? "" };
@@ -237,6 +260,9 @@ function prepare(messages: LlmMessage[], route: Route, compactSystem?: string): 
     return m;
   });
 }
+
+/** Identifiant de l'accès qui produit un message (fournisseur + n° de clé). */
+export const originOf = (route: { provider: string; keyNo: number }) => `${route.provider}:${route.keyNo}`;
 
 /**
  * Accès « compact » (quota de ~8 000 tokens/min) : on ne garde que le DERNIER échange des tours précédents,
@@ -464,7 +490,7 @@ export async function* streamCompletion(
         function: { ...fn, name: fn.name ?? "", arguments: fn.arguments || "{}" },
       };
     });
-    yield { type: "final", content, toolCalls, extras, model: route.model, provider: route.providerLabel, finishReason, interrupted };
+    yield { type: "final", content, toolCalls, extras, model: route.model, provider: route.providerLabel, origin: originOf(route), finishReason, interrupted };
     return;
   }
   const allDaily = routes.every((r) => (cooldown.get(r.id) ?? 0) - Date.now() > 30 * 60_000);

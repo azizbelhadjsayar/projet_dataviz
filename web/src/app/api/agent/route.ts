@@ -121,7 +121,7 @@ export async function POST(req: Request) {
             return;
           }
 
-          messages.push({ role: "assistant", content: final.content || null, tool_calls: final.toolCalls, ...final.extras });
+          messages.push({ role: "assistant", content: final.content || null, tool_calls: final.toolCalls, ...final.extras, _origin: final.origin });
           for (const call of final.toolCalls) {
             let args: Record<string, unknown> = {};
             let result: unknown;
