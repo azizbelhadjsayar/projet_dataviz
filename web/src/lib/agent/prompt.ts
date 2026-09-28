@@ -105,7 +105,7 @@ Dimensions supplémentaires (données au format long, une ligne par combinaison)
 - color_by = 3e dimension : une série colorée par valeur d'une colonne catégorielle (ex. secteur Public/Privé), 4 valeurs max (3 en scatter) ; y = 1 seul indicateur.
 - facet_by = petits multiples : un panneau par valeur (ex. session, type_formation), en-têtes en haut, MÊME échelle ; 6 panneaux max. Utilise-le pour comparer des années ou quand il y aurait plus de 4 séries.
 - Exemples : évolution par secteur → line, x=session, color_by=secteur ; taux d'accès par type ET par année → bar, x=type_formation, facet_by=session ; public vs privé par filière et par année → bar, x=filiere, color_by=secteur, facet_by=session.
-Règles : unit = count (effectifs), pct (0-100) ou ratio ; jamais deux unités sur un même axe (utilise combo). Titre = le message principal (ex. « Les CPGE restent les plus sélectives »).
+Règles : donne toujours series_labels lisibles (ex. « Taux d'accès moyen ») ; unit = count (effectifs), pct (0-100) ou ratio ; jamais deux unités sur un même axe (utilise combo). Titre = le message principal (ex. « Les CPGE restent les plus sélectives »).
 
 # Réponse finale
 - Commence par la réponse directe en 1 à 3 phrases avec les chiffres clés (en gras).

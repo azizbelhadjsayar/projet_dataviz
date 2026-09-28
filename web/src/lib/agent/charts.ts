@@ -27,6 +27,17 @@ const CANONICAL = [
   ["Métropole", "Outre-mer", "Étranger"],
 ];
 
+/** Libellé lisible d'une colonne quand le modèle n'en fournit pas : taux_acces_moyen → « Taux d'accès moyen ». */
+const WORDS: Record<string, string> = {
+  taux: "taux", acces: "d'accès", voeux: "vœux", pp: "(PP)", pc: "(PC)", nb: "nombre de", moy: "moyen", pct: "%",
+  part: "part", admis: "admis", capacite: "places", boursiers: "boursiers", filles: "filles", selectives: "sélectives",
+  remplissage: "de remplissage", par: "par", place: "place", neobac: "néo-bacheliers", tb: "TB", academie: "académie",
+};
+export function humanize(col: string) {
+  const s = col.split("_").filter(Boolean).map((w) => WORDS[w.toLowerCase()] ?? w).join(" ").replace(/\s+/g, " ").trim();
+  return s ? s[0].toUpperCase() + s.slice(1) : col;
+}
+
 const num = (v: unknown) => (typeof v === "number" ? v : v === null || v === undefined || v === "" ? null : Number.isFinite(Number(v)) ? Number(v) : null);
 const str = (v: unknown) => (v === null || v === undefined ? "Non renseigné" : String(v));
 const isNumericList = (vals: string[]) => vals.every((v) => v !== "" && Number.isFinite(Number(v)));
@@ -55,7 +66,7 @@ export function buildChart(src: ChartSource, args: Record<string, unknown>, id: 
   const li = type === "scatter" ? opt(args.label_column, "label_column") : -1;
   const labels = Array.isArray(args.series_labels) ? args.series_labels.map(String) : [];
   const notes: string[] = [];
-  const base = { id, type, title: String(args.title ?? ""), subtitle: args.subtitle ? String(args.subtitle) : undefined, unit, xLabel: String(args.x) };
+  const base = { id, type, title: String(args.title ?? ""), subtitle: args.subtitle ? String(args.subtitle) : undefined, unit, xLabel: humanize(String(args.x)) };
   const rows = src.rows;
 
   // ── Carte de chaleur : lignes = color_by, colonnes = x, valeur = y[0] ──
@@ -72,7 +83,7 @@ export function buildChart(src: ChartSource, args: Record<string, unknown>, id: 
     }
     if (values.every((line) => line.every((v) => v === null))) throw new Error("heatmap : aucune valeur numérique dans y.");
     return {
-      ...base, series: [{ key: "y0", label: labels[0] ?? src.columns[ys[0]] }], data: [],
+      ...base, series: [{ key: "y0", label: labels[0] ?? humanize(src.columns[ys[0]]) }], data: [],
       heat: { rowLabel: String(args.color_by), colLabel: String(args.x), rows: rowVals, cols: colVals, values },
       note: notes.join(" ") || undefined,
     };
@@ -120,7 +131,7 @@ export function buildChart(src: ChartSource, args: Record<string, unknown>, id: 
     series = groups.map((g, k) => ({ key: `s${k}`, label: g, match: g }));
     if (fold) series.push({ key: `s${series.length}`, label: "Autres" });
   } else {
-    series = ys.map((yi, k) => ({ key: `y${k}`, label: labels[k] ?? src.columns[yi] }));
+    series = ys.map((yi, k) => ({ key: `y${k}`, label: labels[k] ?? humanize(src.columns[yi]) }));
   }
   const seriesKeyOf = (value: string) =>
     series.find((s) => s.match === value)?.key ?? (fold?.has(value) ? series[series.length - 1].key : null);
