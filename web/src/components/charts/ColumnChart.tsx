@@ -16,25 +16,31 @@ interface Props {
   hideLegend?: boolean;
   syncId?: string;
   hideXAxis?: boolean;
+  /** Histogramme : classes contiguës (1 px d'écart), graduations espacées automatiquement. */
+  histogram?: boolean;
+  /** Barres à 100 % : valeurs d'origine (`<clé>_raw`) rappelées dans l'infobulle. */
+  rawUnit?: Unit;
 }
 
 /** Barres verticales (colonnes) groupées ou empilées ; valeur au sommet pour une seule série. */
-export function ColumnChart({ data, series, unit, stacked = false, height = 280, yDomain, hideLegend, syncId, hideXAxis }: Props) {
+export function ColumnChart({ data, series, unit, stacked = false, height = 280, yDomain, hideLegend, syncId, hideXAxis, histogram, rawUnit }: Props) {
   const single = series.length === 1;
-  const axis = categoryAxis(data.map((d) => String(d.label ?? "")));
-  const barSize = stacked || single ? Math.min(24, Math.max(8, 360 / Math.max(1, data.length))) : Math.min(14, Math.max(5, 200 / Math.max(1, data.length * series.length)));
+  const axis = histogram ? { tick: AXIS_TICK, height: 30, extra: 0 } : categoryAxis(data.map((d) => String(d.label ?? "")));
+  const barSize = histogram ? undefined : stacked || single ? Math.min(24, Math.max(8, 360 / Math.max(1, data.length))) : Math.min(14, Math.max(5, 200 / Math.max(1, data.length * series.length)));
+  const valueLabels = single && (!histogram || data.length <= 14);
   return (
     <div>
       {!hideLegend && <Legend series={series} />}
       <div style={{ height: height + (hideXAxis ? 0 : axis.extra) }}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: single ? 18 : 6, right: 8, bottom: 0, left: 0 }} barGap={2} syncId={syncId}>
+          <BarChart data={data} margin={{ top: valueLabels ? 18 : 6, right: 8, bottom: 0, left: 0 }} barGap={2} barCategoryGap={histogram ? 1 : "10%"} syncId={syncId}>
             <CartesianGrid vertical={false} stroke="var(--grid)" />
-            <XAxis dataKey="label" tick={axis.tick} height={axis.height} tickLine={false} axisLine={{ stroke: "var(--axis)" }} hide={hideXAxis} interval={0} />
+            <XAxis dataKey="label" tick={axis.tick} height={axis.height} tickLine={false} axisLine={{ stroke: "var(--axis)" }} hide={hideXAxis}
+              interval={histogram ? "preserveStartEnd" : 0} minTickGap={histogram ? 12 : undefined} />
             <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} width={52}
               domain={yDomain ?? (stacked && unit === "pct" ? [0, 100] : [0, "auto"])}
               tickFormatter={(v: number) => (unit === "pct" ? `${v} %` : fmtValue(v, unit, true))} />
-            <Tooltip cursor={{ fill: "var(--surface-2)" }} content={(p) => <ChartTooltip {...p} series={series} unit={unit} />} />
+            <Tooltip cursor={{ fill: "var(--surface-2)" }} content={(p) => <ChartTooltip {...p} series={series} unit={unit} rawUnit={rawUnit} />} />
             {series.map((s, i) => (
               <Bar
                 key={s.key}
@@ -43,12 +49,12 @@ export function ColumnChart({ data, series, unit, stacked = false, height = 280,
                 fill={s.color}
                 barSize={barSize}
                 stackId={stacked ? "a" : undefined}
-                radius={stacked ? (i === series.length - 1 ? [4, 4, 0, 0] : 0) : [4, 4, 0, 0]}
+                radius={histogram ? [2, 2, 0, 0] : stacked ? (i === series.length - 1 ? [4, 4, 0, 0] : 0) : [4, 4, 0, 0]}
                 stroke={stacked ? "var(--surface)" : undefined}
                 strokeWidth={stacked ? 2 : 0}
                 isAnimationActive={false}
               >
-                {single && (
+                {valueLabels && (
                   <LabelList dataKey={s.key} position="top" offset={6} fill="var(--ink-2)" fontSize={11}
                     formatter={(v: unknown) => fmtValue(v as number | null, unit, true)} />
                 )}

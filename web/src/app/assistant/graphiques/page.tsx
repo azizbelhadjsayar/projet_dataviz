@@ -24,7 +24,7 @@ export default async function ChartGalleryPage() {
   }));
 
   const params = (a: Record<string, unknown>) =>
-    (["type", "x", "y", "color_by", "facet_by", "unit", "unit2"] as const)
+    (["type", "x", "y", "color_by", "facet_by", "size", "unit", "unit2", "y_units", "total_label"] as const)
       .filter((k) => a[k] !== undefined)
       .map((k) => [k, Array.isArray(a[k]) ? (a[k] as string[]).join(", ") : String(a[k])]);
 
@@ -41,8 +41,9 @@ export default async function ChartGalleryPage() {
           </Link>
         }
       >
-        Tous les types de graphiques que l&apos;agent peut créer, construits sur les vraies données avec les mêmes paramètres que lui
-        (panneaux par année, 3ᵉ dimension en couleur, graphique combiné, carte de chaleur…). Aucun modèle n&apos;est appelé ici.
+        Tous les types de graphiques que l&apos;agent peut créer, construits sur les vraies données avec les mêmes paramètres que lui :
+        classements, évolutions, parts d&apos;un tout (anneau, treemap, barres à 100 %), avant / après, cascade, entonnoir, distribution,
+        carte, bulles, chiffres clés, panneaux par année et graphique combiné. Aucun modèle n&apos;est appelé ici.
       </PageHeader>
 
       <nav aria-label="Exemples" className="mb-6 flex flex-wrap gap-2">

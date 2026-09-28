@@ -16,7 +16,7 @@ interface Props {
   width: number;
   height: number;
   /** Valeur par code de forme (null = pas de donnée). */
-  values: Record<string, { value: number | null; formations: number }>;
+  values: Record<string, { value: number | null; formations?: number }>;
   unit: Unit;
   metricLabel: string;
   selected?: string | null;
@@ -90,10 +90,10 @@ export function FranceMap({ shapes, width, height, values, unit, metricLabel, se
               strokeWidth={isSel ? 2 : hover?.code === s.code ? 2 : 0.8}
               strokeLinejoin="round"
               tabIndex={0}
-              role="button"
-              aria-pressed={isSel}
+              role={onSelect ? "button" : "img"}
+              aria-pressed={onSelect ? isSel : undefined}
               aria-label={`${s.name} : ${fmtValue(values[s.code]?.value ?? null, unit)}`}
-              className="cursor-pointer outline-none transition-[opacity] hover:opacity-85 focus:opacity-85"
+              className={`${onSelect ? "cursor-pointer" : ""} outline-none transition-[opacity] hover:opacity-85 focus:opacity-85`}
               onPointerMove={(e) => place(e, s.code)}
               onPointerLeave={() => setHover(null)}
               onFocus={(e) => place(e, s.code, true)}
@@ -111,7 +111,11 @@ export function FranceMap({ shapes, width, height, values, unit, metricLabel, se
         >
           <p className="font-medium text-ink">{hovered.name}</p>
           <p><span className="tabular font-semibold">{fmtValue(hv?.value ?? null, unit)}</span> <span className="text-ink-2">{metricLabel.toLowerCase()}</span></p>
-          <p className="text-xs text-muted">{fmtInt(hv?.formations ?? 0)} formations · clic pour le détail</p>
+          {(hv?.formations !== undefined || onSelect) && (
+            <p className="text-xs text-muted">
+              {[hv?.formations !== undefined && `${fmtInt(hv.formations)} formations`, onSelect && "clic pour le détail"].filter(Boolean).join(" · ")}
+            </p>
+          )}
         </div>
       )}
       {/* Légende de l'échelle séquentielle (classes de quantiles) */}

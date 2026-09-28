@@ -13,6 +13,8 @@ export interface Point {
   n?: number;
   /** Clé du groupe (couleur) quand les points sont colorés par catégorie. */
   seriesKey?: string;
+  /** Bulles : valeur de l'indicateur de taille (surface proportionnelle). */
+  z?: number;
 }
 
 interface Props {
@@ -31,17 +33,24 @@ interface Props {
   /** Échelles imposées (petits multiples : même échelle dans chaque panneau). */
   xDomain?: [number, number];
   yDomain?: [number, number];
+  /** Bulles : libellé de l'indicateur de taille (points avec `z`). */
+  sizeLabel?: string;
 }
 
-export function ScatterPlot({ data, xLabel, yLabel, xUnit, yUnit, nLabel = "formations", xLog, refX, refY, height = 380, groups, xDomain, yDomain }: Props) {
+export function ScatterPlot({ data, xLabel, yLabel, xUnit, yUnit, nLabel = "formations", xLog, refX, refY, height = 380, groups, xDomain, yDomain, sizeLabel }: Props) {
   // Axes ancrés à 0 sauf si des valeurs négatives existent (ex. variations).
   const xNeg = data.some((p) => p.x < 0);
   const yNeg = data.some((p) => p.y < 0);
   const yMax = Math.max(...data.map((p) => p.y));
-  const layers = groups?.length ? groups.map((g) => ({ color: g.color, points: data.filter((p) => p.seriesKey === g.key) })) : [{ color: "var(--series-1)", points: data }];
+  // Bulles : rayon ∝ √valeur (surface proportionnelle), grandes bulles dessinées d'abord.
+  const zMax = sizeLabel ? Math.max(0, ...data.map((p) => p.z ?? 0)) : 0;
+  const radius = (p: Point) => (zMax > 0 ? 4 + 22 * Math.sqrt(Math.max(0, p.z ?? 0) / zMax) : 5);
+  const ordered = zMax > 0 ? [...data].sort((a, b) => (b.z ?? 0) - (a.z ?? 0)) : data;
+  const layers = groups?.length ? groups.map((g) => ({ color: g.color, points: ordered.filter((p) => p.seriesKey === g.key) })) : [{ color: "var(--series-1)", points: ordered }];
   return (
     <div>
       {groups && groups.length > 1 && <Legend series={groups} />}
+      {zMax > 0 && <p className="mb-1 text-xs text-muted">Taille des bulles : {sizeLabel?.toLowerCase()} (surface proportionnelle, jusqu&apos;à {fmtValue(zMax, "count", true)}).</p>}
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         <ScatterChart margin={{ top: 8, right: 16, bottom: 24, left: 0 }}>
@@ -83,6 +92,7 @@ export function ScatterPlot({ data, xLabel, yLabel, xUnit, yUnit, nLabel = "form
                   {p.group && <p className="mb-1 text-xs text-ink-2">{p.group}</p>}
                   <p><span className="tabular font-semibold">{fmtValue(p.x, xUnit)}</span> <span className="text-ink-2">{xLabel.toLowerCase()}</span></p>
                   <p><span className="tabular font-semibold">{fmtValue(p.y, yUnit)}</span> <span className="text-ink-2">{yLabel.toLowerCase()}</span></p>
+                  {sizeLabel && p.z !== undefined && <p><span className="tabular font-semibold">{fmtValue(p.z, "count")}</span> <span className="text-ink-2">{sizeLabel.toLowerCase()}</span></p>}
                   {p.n !== undefined && <p className="text-xs text-muted">{fmtInt(p.n)} {nLabel}</p>}
                 </div>
               );
@@ -93,13 +103,16 @@ export function ScatterPlot({ data, xLabel, yLabel, xUnit, yUnit, nLabel = "form
               key={i}
               data={layer.points}
               isAnimationActive={false}
-              shape={(props: { cx?: number; cy?: number }) => (
-                <g>
-                  {/* zone de survol élargie (24 px) autour d'un point de 10 px */}
-                  <circle cx={props.cx} cy={props.cy} r={12} fill="transparent" />
-                  <circle cx={props.cx} cy={props.cy} r={5} fill={layer.color} fillOpacity={0.8} stroke="var(--surface)" strokeWidth={2} />
-                </g>
-              )}
+              shape={(props: { cx?: number; cy?: number; payload?: Point }) => {
+                const r = props.payload ? radius(props.payload) : 5;
+                return (
+                  <g>
+                    {/* zone de survol élargie autour du point */}
+                    <circle cx={props.cx} cy={props.cy} r={Math.max(12, r + 4)} fill="transparent" />
+                    <circle cx={props.cx} cy={props.cy} r={r} fill={layer.color} fillOpacity={zMax > 0 ? 0.6 : 0.8} stroke="var(--surface)" strokeWidth={zMax > 0 ? 1.5 : 2} />
+                  </g>
+                );
+              }}
             />
           ))}
         </ScatterChart>

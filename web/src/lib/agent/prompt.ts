@@ -15,11 +15,39 @@ const cached: Partial<Record<PromptVariant, Promise<string>>> = {};
 /** Colonnes catégorielles à longue liste de valeurs, omises en variante compacte (SELECT DISTINCT si besoin). */
 const LONG_LISTS = new Set(["academie", "filiere"]);
 
+/** Guide « quel graphique pour quel besoin » (variante complète). */
+const CHART_GUIDE_FULL = `Choisis le type selon le besoin (et selon la demande explicite de l'utilisateur) :
+- Classer / comparer des catégories : bar (horizontal, trié, libellés longs) ; column (vertical, peu de catégories ou x = session).
+- Évolution (x = session) : line (1 à 4 séries) ; area = un total et sa composition dans le temps (aires empilées, effectifs).
+- Part d'un tout :
+  · pie : un total en ≤ 6 parts (anneau ; au-delà « Autres »). Pour « cercle », « camembert », « répartition ».
+  · treemap : un total avec beaucoup de catégories (≤ 40 tuiles) ; deux niveaux avec color_by = groupe (ex. type_formation) et x = élément (ex. filiere).
+  · stacked_bar_100 (barres horizontales) / stacked_column_100 (colonnes, ex. x = session) : chaque barre = un total divisé en parts à 100 %, pour comparer des compositions. Parts via color_by (≤ 6) ou plusieurs colonnes y ; donne des EFFECTIFS, la conversion en % est automatique. Une seule ligne = une barre de répartition.
+  · stacked_bar / stacked_column : volumes empilés (effectifs).
+- Avant / après (2 valeurs par catégorie, ex. 2021 vs 2025) : dumbbell, y = [avant, après] ou y = [valeur] + color_by = session.
+- Décomposer un écart : waterfall, 1re ligne = valeur de départ (ex. total 2021), puis une ligne par variation (+/−) ; total d'arrivée calculé (total_label = son libellé, ex. « 2025 »). SQL : SELECT etape, valeur FROM (départ UNION ALL variations, avec une colonne ordre) ORDER BY ordre, abs(valeur) DESC.
+- Étapes successives (vœux → propositions → admis) : funnel, une ligne par étape dans l'ordre, ou une ligne avec une colonne y par étape.
+- Distribution entre formations : histogram, classes calculées en SQL : SELECT least(floor(taux_acces / 5) * 5, 95) AS classe_taux_acces, count(*) AS formations … GROUP BY 1 ; x = classe_taux_acces.
+- Relation entre deux indicateurs : scatter (≥ 8 points, label_column) ; bubble = scatter + size (3e indicateur en taille, ≤ 80 bulles).
+- Deux indicateurs d'UNITÉS DIFFÉRENTES sur le même x : combo, y = [barres, courbe], unit = unité du 1er, unit2 = du 2e (x = session : deux panneaux alignés ; catégories : lignes horizontales, une échelle par indicateur).
+- Carte de France : map, x = region ou code_departement (ajoute departement pour les noms), y = [valeur], UNE ligne par territoire (filtre une session). Pas d'académies (utilise bar).
+- Tableau croisé de 2 dimensions : heatmap, x = colonnes, color_by = lignes, y = [valeur].
+- Chiffres clés : kpi, une ligne avec une colonne par indicateur (2 à 6, y_units = leurs unités) ; avec x = session sur plusieurs lignes : dernière valeur, variation et mini-courbe.
+Dimensions supplémentaires (données au format long, une ligne par combinaison) :
+- color_by = 3e dimension : une série colorée par valeur d'une colonne catégorielle (ex. secteur Public/Privé), 4 valeurs max (3 en scatter) ; y = 1 seul indicateur.
+- facet_by = petits multiples : un panneau par valeur (ex. session, type_formation), en-têtes en haut, MÊME échelle ; 6 panneaux max. Utilise-le pour comparer des années ou quand il y aurait plus de 4 séries.
+- Exemples : évolution par secteur → line, x=session, color_by=secteur ; taux d'accès par type ET par année → bar, x=type_formation, facet_by=session ; public vs privé par filière et par année → bar, x=filiere, color_by=secteur, facet_by=session.`;
+
+/** Même guide, condensé pour le budget de jetons de Groq. */
+const CHART_GUIDE_COMPACT = `Types selon le besoin : bar (classement, horizontal) · column (vertical, x = session) · line (évolution) · area (total et composition dans le temps) · pie (≤ 6 parts d'un total : « cercle », « camembert ») · treemap (parts nombreuses ; color_by = groupe) · stacked_bar_100 / stacked_column_100 (total divisé en parts à 100 % ; parts via color_by ou plusieurs y, en effectifs) · stacked_bar / stacked_column (volumes empilés) · dumbbell (avant / après : y = [avant, après] ou color_by = session) · waterfall (1re ligne = départ, puis variations ; total_label ; SQL : SELECT … FROM (… UNION ALL …) ORDER BY ordre) · funnel (étapes dans l'ordre) · histogram (x = least(floor(taux_acces / 5) * 5, 95) AS classe_taux_acces, y = [count(*)]) · scatter / bubble (2 indicateurs ; size = 3e) · combo (2 unités : y = [barres, courbe], unit2) · map (x = region ou code_departement, une ligne par territoire, pas d'académies) · heatmap (x = colonnes, color_by = lignes) · kpi (chiffres clés : une ligne, une colonne par indicateur, y_units).
+color_by = 3e dimension (≤ 4 séries, un seul y) ; facet_by = un panneau par valeur (≤ 6, même échelle).`;
+
 const fr = (n: unknown, d = 0) =>
   typeof n === "number" ? n.toLocaleString("fr-FR", { maximumFractionDigits: d, minimumFractionDigits: d }) : "–";
 
 async function build(variant: PromptVariant) {
   const compact = variant === "compact";
+  const chartGuide = compact ? CHART_GUIDE_COMPACT : CHART_GUIDE_FULL;
   const dict = JSON.parse(readFileSync(path.join(process.cwd(), "data", "dictionary.json"), "utf8")) as
     { name: string; type: string; description: string }[];
   const schema = compact
@@ -95,18 +123,7 @@ UNITÉS : taux_acces est DÉJÀ un pourcentage (0 à 100) : ne le multiplie JAMA
 - Filtre la session quand la question porte sur une année ; par défaut, la plus récente est 2025.
 
 # Graphiques (create_chart, à partir du result_id d'une requête)
-Types (choisis selon le message à faire passer) :
-- bar : classement / comparaison de catégories (barres horizontales, 25 max, trié). stacked_bar : composition en % (somme ~100).
-- column / stacked_column : barres verticales, idéales quand x = session (évolution de quelques catégories). Pour des catégories à libellés longs (établissements, filières), préfère bar (horizontal).
-- line : évolution (x = session), 1 à 4 séries.
-- scatter : relation entre deux indicateurs (x et y numériques, label_column nomme les points, ≥ 8 points).
-- combo : 2 indicateurs d'UNITÉS DIFFÉRENTES sur le même x (ex. vœux en effectif + taux d'accès en %) : y = [barres, courbe], unit = unité du 1er, unit2 = unité du 2e. Avec x = session : deux panneaux alignés (barres puis courbe) ; avec des catégories (établissements…) : lignes horizontales, barres puis points, une échelle par indicateur.
-- pie : répartition d'un total en parts (anneau), x = catégories, y = [effectif] ; 6 parts max (les plus petites regroupées en « Autres »). À utiliser quand on demande un cercle / camembert / une répartition ; pour comparer précisément des valeurs proches, préfère bar.
-- heatmap : tableau croisé coloré de 2 dimensions (ex. région × session → taux d'accès) : x = colonne des colonnes, color_by = colonne des lignes, y = [valeur].
-Dimensions supplémentaires (données au format long, une ligne par combinaison) :
-- color_by = 3e dimension : une série colorée par valeur d'une colonne catégorielle (ex. secteur Public/Privé), 4 valeurs max (3 en scatter) ; y = 1 seul indicateur.
-- facet_by = petits multiples : un panneau par valeur (ex. session, type_formation), en-têtes en haut, MÊME échelle ; 6 panneaux max. Utilise-le pour comparer des années ou quand il y aurait plus de 4 séries.
-- Exemples : évolution par secteur → line, x=session, color_by=secteur ; taux d'accès par type ET par année → bar, x=type_formation, facet_by=session ; public vs privé par filière et par année → bar, x=filiere, color_by=secteur, facet_by=session.
+${chartGuide}
 Règles : donne toujours series_labels lisibles (ex. « Taux d'accès moyen ») ; unit = count (effectifs), pct (0-100) ou ratio ; jamais deux unités sur un même axe (utilise combo). Titre = le message principal (ex. « Les CPGE restent les plus sélectives »).
 
 # Réponse finale

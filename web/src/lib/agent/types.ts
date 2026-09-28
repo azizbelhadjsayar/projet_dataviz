@@ -1,10 +1,28 @@
 // Types partagés serveur / client pour l'agent.
 
 export type ChartUnit = "count" | "pct" | "ratio";
-export type ChartType = "bar" | "stacked_bar" | "column" | "stacked_column" | "line" | "scatter" | "combo" | "heatmap" | "pie";
-export const CHART_TYPES: ChartType[] = ["bar", "stacked_bar", "column", "stacked_column", "line", "scatter", "combo", "heatmap", "pie"];
+export type ChartType =
+  | "bar" | "stacked_bar" | "stacked_bar_100" | "column" | "stacked_column" | "stacked_column_100"
+  | "line" | "area" | "scatter" | "bubble" | "combo" | "heatmap" | "pie" | "treemap" | "map"
+  | "waterfall" | "dumbbell" | "funnel" | "histogram" | "kpi";
+export const CHART_TYPES: ChartType[] = [
+  "bar", "stacked_bar", "stacked_bar_100", "column", "stacked_column", "stacked_column_100",
+  "line", "area", "scatter", "bubble", "combo", "heatmap", "pie", "treemap", "map",
+  "waterfall", "dumbbell", "funnel", "histogram", "kpi",
+];
 
 export type ChartRow = Record<string, string | number | null>;
+
+export interface KpiTile {
+  label: string;
+  unit: ChartUnit;
+  value: number | null;
+  /** Valeur de comparaison (ligne précédente d'une série temporelle). */
+  previous?: number | null;
+  previousLabel?: string;
+  /** Série complète pour la mini-courbe. */
+  trend?: (number | null)[];
+}
 
 export interface ChartPayload {
   id: string;
@@ -15,6 +33,8 @@ export interface ChartPayload {
   unit: ChartUnit;
   /** Unité du 2e indicateur d'un graphique combiné (panneau du bas). */
   unit2?: ChartUnit;
+  /** Barres à 100 % : unité des valeurs d'origine (conservées dans les clés `<série>_raw`). */
+  rawUnit?: ChartUnit;
   /** Libellé de l'axe X (scatter : indicateur X ; autres : colonne des catégories). */
   xLabel: string;
   /** Séries tracées : colonnes y (clés y0…) ou valeurs d'une colonne catégorielle (clés s0…). */
@@ -26,6 +46,12 @@ export interface ChartPayload {
   facets?: { label: string; data: ChartRow[] }[];
   /** Carte de chaleur : tableau croisé lignes × colonnes. */
   heat?: { rowLabel: string; colLabel: string; rows: string[]; cols: string[]; values: (number | null)[][] };
+  /** Carte choroplèthe : une valeur par région ou département (code INSEE quand il est connu). */
+  map?: { level: "regions" | "departements"; areas: { code?: string; name: string; value: number | null }[] };
+  /** Indicateurs clés (tuiles). */
+  tiles?: KpiTile[];
+  /** Bulles : libellé de l'indicateur de taille (clé `z` des lignes). */
+  sizeLabel?: string;
   note?: string;
 }
 

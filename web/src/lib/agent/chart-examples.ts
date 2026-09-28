@@ -123,4 +123,149 @@ WHERE session = 2025 AND type_formation = 'Licence' GROUP BY 1 ORDER BY 2 DESC`,
       subtitle: "Total des vœux en phase principale, sessions 2021 à 2025",
     },
   },
+  {
+    name: "Barre de répartition unique (stacked_bar_100, format large)",
+    question: "Quelle est la répartition des admis néo-bacheliers 2025 par série de bac ?",
+    sql: `SELECT 'Admis 2025' AS perimetre, sum(admis_bac_general) AS general, sum(admis_bac_techno) AS techno,
+       sum(admis_bac_pro) AS pro
+FROM formations WHERE session = 2025`,
+    args: {
+      type: "stacked_bar_100", x: "perimetre", y: ["general", "techno", "pro"], unit: "count",
+      series_labels: ["Bac général", "Bac technologique", "Bac professionnel"],
+      title: "Deux admis néo-bacheliers sur trois viennent d'un bac général",
+      subtitle: "Répartition des admis néo-bacheliers par série de bac · session 2025",
+    },
+  },
+  {
+    name: "Barres à 100 % par catégorie (stacked_bar_100)",
+    question: "Compare la répartition des mentions au bac des admis selon le type de formation en 2025.",
+    sql: `SELECT type_formation, sum(admis_sans_mention) AS sans_mention, sum(admis_mention_ab) AS assez_bien,
+       sum(admis_mention_b) AS bien, sum(coalesce(admis_mention_tb, 0) + coalesce(admis_mention_tbf, 0)) AS tres_bien
+FROM formations WHERE session = 2025 GROUP BY 1 ORDER BY sum(admis_neobac) DESC LIMIT 8`,
+    args: {
+      type: "stacked_bar_100", x: "type_formation", y: ["sans_mention", "assez_bien", "bien", "tres_bien"], unit: "count",
+      series_labels: ["Sans mention", "Assez bien", "Bien", "Très bien (et félicitations)"],
+      title: "Mentions au bac des admis : les CPGE recrutent surtout des mentions très bien",
+      subtitle: "Répartition des admis néo-bacheliers par mention · 8 types de formation les plus importants · 2025",
+    },
+  },
+  {
+    name: "Colonnes à 100 % dans le temps (stacked_column_100 + color_by)",
+    question: "Comment évolue la part du privé dans les vœux depuis 2021 ?",
+    sql: `SELECT session, secteur, sum(voeux_pp) AS voeux_pp FROM formations GROUP BY 1, 2`,
+    args: {
+      type: "stacked_column_100", x: "session", y: ["voeux_pp"], color_by: "secteur", unit: "count",
+      title: "Part des vœux adressés au public et au privé",
+      subtitle: "Répartition des vœux en phase principale par secteur · 2021-2025",
+    },
+  },
+  {
+    name: "Aires empilées (area + color_by)",
+    question: "Montre l'évolution du volume de vœux et sa composition par type de formation.",
+    sql: `SELECT session, type_formation, sum(voeux_pp) AS voeux_pp FROM formations GROUP BY 1, 2`,
+    args: {
+      type: "area", x: "session", y: ["voeux_pp"], color_by: "type_formation", unit: "count",
+      title: "Volume de vœux et composition par type de formation",
+      subtitle: "Vœux en phase principale, aires empilées · 2021-2025",
+    },
+  },
+  {
+    name: "Treemap à deux niveaux (treemap + color_by)",
+    question: "Fais un treemap des filières les plus demandées en 2025, regroupées par type de formation.",
+    sql: `SELECT type_formation, filiere, sum(voeux_pp) AS voeux_pp FROM formations
+WHERE session = 2025 GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 40`,
+    args: {
+      type: "treemap", x: "filiere", y: ["voeux_pp"], color_by: "type_formation", unit: "count", series_labels: ["Vœux PP 2025"],
+      title: "Les 40 filières les plus demandées, par type de formation",
+      subtitle: "Vœux en phase principale · session 2025 · surface proportionnelle aux vœux",
+    },
+  },
+  {
+    name: "Carte des départements (map)",
+    question: "Montre sur une carte la pression (vœux par place) par département en 2025.",
+    sql: `SELECT code_departement, departement, round(sum(voeux_pp) / sum(capacite), 1) AS voeux_par_place
+FROM formations WHERE session = 2025 GROUP BY 1, 2`,
+    args: {
+      type: "map", x: "code_departement", y: ["voeux_par_place"], unit: "ratio", series_labels: ["Vœux par place"],
+      title: "Pression de la demande par département",
+      subtitle: "Vœux en phase principale par place · session 2025 · classes de quantiles",
+    },
+  },
+  {
+    name: "Cascade (waterfall)",
+    question: "D'où vient la variation du nombre de vœux entre 2021 et 2025 ? Décompose par type de formation.",
+    sql: `WITH t AS (
+  SELECT type_formation, sum(voeux_pp) FILTER (WHERE session = 2021) AS v2021, sum(voeux_pp) FILTER (WHERE session = 2025) AS v2025
+  FROM formations GROUP BY 1)
+SELECT etape, voeux_pp FROM (
+  SELECT '2021' AS etape, sum(v2021) AS voeux_pp, 0 AS ordre FROM t
+  UNION ALL
+  SELECT type_formation, coalesce(v2025, 0) - coalesce(v2021, 0), 1 FROM t
+) ORDER BY ordre, abs(voeux_pp) DESC`,
+    args: {
+      type: "waterfall", x: "etape", y: ["voeux_pp"], unit: "count", total_label: "2025", series_labels: ["Vœux PP"],
+      title: "De 2021 à 2025 : la variation des vœux type par type",
+      subtitle: "Vœux en phase principale · départ 2021, variation par type de formation, arrivée 2025",
+    },
+  },
+  {
+    name: "Haltères avant / après (dumbbell + color_by)",
+    question: "Compare le taux d'accès moyen par type de formation entre 2022 et 2025.",
+    sql: `SELECT session, type_formation, ${TAUX} AS taux_acces_moyen
+FROM formations WHERE session IN (2022, 2025) GROUP BY 1, 2`,
+    args: {
+      type: "dumbbell", x: "type_formation", y: ["taux_acces_moyen"], color_by: "session", unit: "pct",
+      title: "Taux d'accès 2022 et 2025 par type de formation",
+      subtitle: "Taux d'accès moyen pondéré · 2022 (définition homogène) vs 2025",
+    },
+  },
+  {
+    name: "Entonnoir (funnel, format large)",
+    question: "Du vœu à l'admission : montre l'entonnoir de la procédure 2025.",
+    sql: `SELECT sum(voeux_total) AS voeux, sum(propositions_total) AS propositions, sum(admis_total) AS admis
+FROM formations WHERE session = 2025`,
+    args: {
+      type: "funnel", y: ["voeux", "propositions", "admis"], unit: "count",
+      series_labels: ["Vœux (toutes phases)", "Propositions d'admission", "Admis"],
+      title: "Du vœu à l'admission en 2025",
+      subtitle: "Vœux, propositions et admis, toutes formations · session 2025",
+    },
+  },
+  {
+    name: "Histogramme (histogram)",
+    question: "Comment se distribuent les taux d'accès des formations en 2025 ?",
+    sql: `SELECT least(floor(taux_acces / 5) * 5, 95) AS classe_taux_acces, count(*) AS formations
+FROM formations WHERE session = 2025 AND taux_acces IS NOT NULL GROUP BY 1 ORDER BY 1`,
+    args: {
+      type: "histogram", x: "classe_taux_acces", y: ["formations"], unit: "count", series_labels: ["Formations"],
+      title: "La plupart des formations ont un taux d'accès élevé",
+      subtitle: "Nombre de formations par classe de taux d'accès (5 points) · session 2025",
+    },
+  },
+  {
+    name: "Chiffres clés avec évolution (kpi)",
+    question: "Donne-moi les chiffres clés de 2025 et leur évolution.",
+    sql: `SELECT session, count(*) AS formations, sum(capacite) AS places, sum(voeux_pp) AS voeux_pp, ${TAUX} AS taux_acces_moyen
+FROM formations GROUP BY 1 ORDER BY 1`,
+    args: {
+      type: "kpi", x: "session", y: ["formations", "places", "voeux_pp", "taux_acces_moyen"], unit: "count",
+      y_units: ["count", "count", "count", "pct"],
+      series_labels: ["Formations", "Places", "Vœux PP", "Taux d'accès moyen"],
+      title: "Parcoursup 2025 en quatre chiffres",
+      subtitle: "Session 2025, variation par rapport à 2024 · mini-courbe 2021-2025",
+    },
+  },
+  {
+    name: "Bulles (bubble)",
+    question: "Par académie, croise la pression, le taux d'accès et le volume de vœux en 2025.",
+    sql: `SELECT academie, round(sum(voeux_pp) / sum(capacite), 1) AS voeux_par_place, ${TAUX} AS taux_acces_moyen, sum(voeux_pp) AS voeux_pp
+FROM formations WHERE session = 2025 AND zone <> 'Étranger'
+GROUP BY 1 HAVING count(*) >= 20`,
+    args: {
+      type: "bubble", x: "voeux_par_place", y: ["taux_acces_moyen"], size: "voeux_pp", label_column: "academie", unit: "pct",
+      series_labels: ["Taux d'accès moyen", "Vœux PP"],
+      title: "Plus de pression, moins d'accès : les académies",
+      subtitle: "Académies (≥ 20 formations) · pression (x), taux d'accès (y), vœux (taille des bulles) · 2025",
+    },
+  },
 ];

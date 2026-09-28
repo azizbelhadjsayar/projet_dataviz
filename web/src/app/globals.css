@@ -31,7 +31,21 @@
   --series-3: #1baf7a; /* aqua */
   --series-4: #eda100; /* jaune */
   --series-5: #e87ba4; /* magenta (5e part d'un anneau) */
+  --series-6: #008300; /* vert (6e part : anneau, barres 100 %) */
   --neutral: #c3c2b7;
+  /* Texte posé sur une couleur de série (contraste ≥ 4,4:1 dans les deux thèmes) */
+  --on-series-1: #ffffff;
+  --on-series-2: #0b0b0b;
+  --on-series-3: #0b0b0b;
+  --on-series-4: #0b0b0b;
+  --on-series-5: #0b0b0b;
+  --on-series-6: #ffffff;
+  --on-neutral: #0b0b0b;
+
+  /* Paire divergente (cascade : hausse / baisse) et barres de total */
+  --pos: #2a78d6;
+  --neg: #e34948;
+  --total-bar: #898781;
 
   /* Rampe ordinale (mentions) - clair -> foncé */
   --ord-1: #86b6ef;
@@ -79,7 +93,13 @@
     --series-3: #199e70;
     --series-4: #c98500;
     --series-5: #d55181;
+    --series-6: #008300;
     --neutral: #5a5955;
+    --on-series-1: #0b0b0b;
+    --on-neutral: #ffffff;
+    --pos: #3987e5;
+    --neg: #e66767;
+    --total-bar: #8d8b85;
     --ord-1: #9ec5f4;
     --ord-2: #6da7ec;
     --ord-3: #3987e5;
@@ -122,7 +142,13 @@
   --series-3: #199e70;
   --series-4: #c98500;
   --series-5: #d55181;
+  --series-6: #008300;
   --neutral: #5a5955;
+  --on-series-1: #0b0b0b;
+  --on-neutral: #ffffff;
+  --pos: #3987e5;
+  --neg: #e66767;
+  --total-bar: #8d8b85;
   --ord-1: #9ec5f4;
   --ord-2: #6da7ec;
   --ord-3: #3987e5;
@@ -146,6 +172,7 @@
   --color-ink-2: var(--ink-2);
   --color-muted: var(--muted);
   --color-grid: var(--grid);
+  --color-axis: var(--axis);
   --color-line: var(--border);
   --color-line-strong: var(--border-strong);
   --color-accent: var(--accent);
