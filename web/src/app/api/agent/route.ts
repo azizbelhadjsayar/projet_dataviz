@@ -7,7 +7,7 @@ import type { AgentEvent } from "@/lib/agent/types";
 // Boucle : le modèle raisonne, écrit du SQL, lit les résultats, corrige, crée des graphiques, puis conclut.
 // Chaque étape est diffusée en direct au navigateur (NDJSON, un AgentEvent par ligne).
 
-export const maxDuration = 120;
+export const maxDuration = 300; // maximum du plan gratuit Vercel (analyses longues)
 
 const MAX_STEPS = 12;
 const MAX_TURNS = 10;
@@ -69,6 +69,7 @@ export async function POST(req: Request) {
       };
       const session = new AgentSession();
       let recoveries = 0; // reprises après une réponse incomplète
+      const t0 = Date.now();
       try {
         // Contexte = prompt système (+ mémoire résumée des anciens échanges) + derniers échanges complets.
         // Deux variantes : complète (Gemini) et compacte (secours Groq, petit quota de tokens).
@@ -80,7 +81,8 @@ export async function POST(req: Request) {
         for (let step = 1; step <= MAX_STEPS; step++) {
           if (req.signal.aborted) return;
           // Dernière étape : plus d'outils, l'agent doit conclure avec ce qu'il a.
-          const last = step === MAX_STEPS;
+          // Dernière étape : limite d'étapes atteinte, ou plus de 4 min écoulées (la fonction est coupée à 5 min).
+          const last = step === MAX_STEPS || Date.now() - t0 > 240_000;
           if (last) messages.push({ role: "user", content: "Tu as atteint la limite d'étapes : rédige maintenant ta réponse finale avec les résultats obtenus." });
 
           let final: Extract<StreamEvent, { type: "final" }> | undefined;

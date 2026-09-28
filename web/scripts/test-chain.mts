@@ -4,6 +4,16 @@ import http from "node:http";
 
 type Captured = { server: string; key: string; body: Record<string, unknown> };
 const captured: Captured[] = [];
+/** normal : Gemini épuisé (par minute), clé Groq A épuisée ; daily : quota du jour épuisé partout ; minute : 429 courts partout. */
+let mode: "normal" | "daily" | "minute" = "normal";
+const daily429 = (res: http.ServerResponse) => {
+  res.writeHead(429, { "Content-Type": "application/json" });
+  res.end(JSON.stringify([{ error: { code: 429, status: "RESOURCE_EXHAUSTED", details: [{ quotaId: "GenerateRequestsPerDayPerProjectPerModel-FreeTier" }, { retryDelay: "15s" }] } }]));
+};
+const minute429 = (res: http.ServerResponse) => {
+  res.writeHead(429, { "Content-Type": "application/json" });
+  res.end(JSON.stringify({ error: { message: "Rate limit reached. Please try again in 0.2s.", code: "rate_limit_exceeded" } }));
+};
 
 const ok = (res: http.ServerResponse, text: string) => {
   res.writeHead(200, { "Content-Type": "text/event-stream" });
@@ -24,11 +34,15 @@ function serve(name: string, handler: (key: string, res: http.ServerResponse) =>
 }
 
 const gemini = serve("gemini", (_key, res) => {
+  if (mode === "daily") return daily429(res);
+  if (mode === "minute") return minute429(res);
   // Gemini : quota gratuit épuisé (délai conseillé 40 s)
   res.writeHead(429, { "Content-Type": "application/json" });
   res.end(JSON.stringify([{ error: { code: 429, status: "RESOURCE_EXHAUSTED", details: [{ retryDelay: "40s" }] } }]));
 });
 const groq = serve("groq", (key, res) => {
+  if (mode === "daily") return daily429(res);
+  if (mode === "minute") return minute429(res);
   if (key === "gsk_A") { // clé A : quota épuisé
     res.writeHead(429, { "Content-Type": "application/json", "retry-after": "30" });
     return res.end(JSON.stringify({ error: { message: "Rate limit reached. Please try again in 30s.", type: "tokens", code: "rate_limit_exceeded" } }));
@@ -44,7 +58,7 @@ Object.assign(process.env, {
 delete process.env.LLM_BASE_URL;
 delete process.env.LLM_MODEL;
 
-const { streamCompletion } = await import("../src/lib/agent/llm");
+const { streamCompletion, resetAccessState } = await import("../src/lib/agent/llm");
 
 // Historique contenant un appel d'outil SANS signature (comme s'il venait de Groq) + réponse d'outil nommée.
 const history = [
@@ -79,6 +93,21 @@ console.log("  Gemini reçoit le prompt complet :", ((toGemini.body.messages as 
 
 const second = await run("2) Requête suivante : les accès en pause sont sautés sans être réessayés");
 console.log("  Gemini réessayé ? ", second.some((c) => c.server === "gemini"), "| clé A réessayée ?", second.some((c) => c.key === "gsk_A"));
+
+async function expectError(label: string, m: typeof mode) {
+  resetAccessState();
+  mode = m;
+  const t = Date.now();
+  try {
+    for await (const ev of streamCompletion(history, [], undefined, { compactSystem: "PROMPT COMPACT" })) void ev;
+    console.log(`\n${label}\n  ✗ aucune erreur levée`);
+  } catch (e) {
+    console.log(`\n${label}\n  ${((Date.now() - t) / 1000).toFixed(1)} s · ${captured.length} requêtes · « ${(e as Error).message.slice(0, 90)}… »`);
+  }
+  captured.length = 0;
+}
+await expectError("3) Quota du JOUR épuisé partout : arrêt immédiat, message explicite", "daily");
+await expectError("4) Quota par minute épuisé partout : chaque accès repris une seule fois, puis arrêt", "minute");
 
 gemini.close();
 groq.close();

@@ -123,6 +123,16 @@ export function llmSummary() {
 // ── État des accès (par instance serveur) : pauses après 429 ──
 const cooldown = new Map<string, number>();
 const COOLDOWN_DEFAULT_S = 20;
+/** Pause après épuisement d'un quota journalier (réessai au plus toutes les heures). */
+const DAILY_COOLDOWN_MS = 60 * 60_000;
+/** Accès dont le quota du jour est épuisé (message d'erreur explicite). */
+const dailyExhausted = new Set<string>();
+
+/** Réinitialise pauses et quotas mémorisés (tests, ou après ajout de clés). */
+export function resetAccessState() {
+  cooldown.clear();
+  dailyExhausted.clear();
+}
 
 export function routeStatus(kind: "agent" | "utility" = "agent") {
   const now = Date.now();
@@ -252,13 +262,18 @@ export async function* streamCompletion(
     if ((cooldown.get(route.id) ?? 0) > Date.now()) paused.push(route);
     else queue.push({ route });
   }
+  const started = Date.now();
+  const resumed = new Set<string>();
   const resumeSoonest = () => {
     // Tous les accès disponibles ont échoué : on attend le moins longtemps possible (≤ 30 s) un accès en pause.
+    // Chaque accès n'est repris qu'UNE fois et l'attente totale est plafonnée (sinon : boucle 429 → attente → 429…).
     const now = Date.now();
-    const next = paused.filter((r) => !tooLarge.has(r.model))
+    if (now - started > 45_000) return false;
+    const next = paused.filter((r) => !tooLarge.has(r.model) && !resumed.has(r.id))
       .map((r) => ({ r, wait: (cooldown.get(r.id) ?? now) - now })).filter((c) => c.wait <= 30_000)
       .sort((a, b) => a.wait - b.wait)[0];
     if (!next) return false;
+    resumed.add(next.r.id);
     paused.splice(paused.indexOf(next.r), 1);
     console.warn(`[agent] tous les accès sont saturés : attente de ${Math.ceil(next.wait / 1000)} s (${next.r.providerLabel} #${next.r.keyNo} ${next.r.model})`);
     queue.push({ route: next.r, waitMs: Math.max(0, next.wait) + 300 });
@@ -300,7 +315,9 @@ export async function* streamCompletion(
     if (!res.ok) {
       const text = await res.text();
       lastError = `${tag} → HTTP ${res.status} : ${text.slice(0, 400)}`;
-      console.warn(`[agent] ${lastError.replace(/\s+/g, " ").slice(0, 240)}`);
+      // Quota précis (ex. GenerateRequestsPerDayPerProjectPerModel-FreeTier) : utile au diagnostic.
+      const quota = text.match(/"quotaId"\s*:\s*"([^"]+)"/)?.[1];
+      console.warn(`[agent] ${tag} → HTTP ${res.status}${quota ? ` · quota ${quota}` : ""} : ${text.replace(/\s+/g, " ").slice(0, 160)}`);
       if (res.status === 401 || res.status === 403) {
         // Clé invalide : on ne bloque pas toute la chaîne s'il reste d'autres accès.
         if (routes.length > 1) { cooldown.set(route.id, Date.now() + 10 * 60_000); continue; }
@@ -310,9 +327,15 @@ export async function* streamCompletion(
       if (res.status === 413 || /too large|reduce your message size|context_length/i.test(text)) {
         tooLarge.add(route.model);
       } else if (res.status === 429 || /RESOURCE_EXHAUSTED|rate_limit/i.test(text)) {
-        const s = retryDelaySeconds(text, res.headers.get("retry-after")) ?? COOLDOWN_DEFAULT_S;
-        cooldown.set(route.id, Date.now() + s * 1000);
-        paused.push(route);
+        if (/PerDay|per[ _]day|requests per day|\bRPD\b|daily/i.test(text)) {
+          // Quota JOURNALIER : le délai conseillé (« 15 s ») est trompeur ; pause d'une heure, pas de reprise.
+          cooldown.set(route.id, Date.now() + DAILY_COOLDOWN_MS);
+          dailyExhausted.add(`${route.providerLabel} ${route.model}`);
+        } else {
+          const s = retryDelaySeconds(text, res.headers.get("retry-after")) ?? COOLDOWN_DEFAULT_S;
+          cooldown.set(route.id, Date.now() + s * 1000);
+          paused.push(route);
+        }
       } else if (!retried.has(route.id)) {
         retried.add(route.id);
         queue.unshift({ route, waitMs: 1500 }); // surcharge passagère : même accès, une fois
@@ -417,8 +440,11 @@ export async function* streamCompletion(
     yield { type: "final", content, toolCalls, extras, model: route.model, provider: route.providerLabel, finishReason, interrupted };
     return;
   }
+  const allDaily = routes.every((r) => (cooldown.get(r.id) ?? 0) - Date.now() > 30 * 60_000);
   throw new LlmError(
-    /429|RESOURCE_EXHAUSTED|rate_limit/i.test(lastError) || paused.length
+    allDaily && dailyExhausted.size
+      ? "Quota gratuit du jour épuisé sur tous les modèles configurés. Il se réinitialise chaque jour (vers 9 h, heure de Paris) ; pour continuer dès maintenant, ajoutez des clés de secours (GROQ_API_KEYS) ou activez la facturation Gemini."
+      : /429|RESOURCE_EXHAUSTED|rate_limit/i.test(lastError) || paused.length
       ? "Quota atteint sur tous les accès configurés (Gemini et Groq). Patientez une minute puis réessayez."
       : /503|UNAVAILABLE|interrompu/.test(lastError)
         ? "Les serveurs des fournisseurs sont momentanément surchargés. Réessayez dans quelques instants."
