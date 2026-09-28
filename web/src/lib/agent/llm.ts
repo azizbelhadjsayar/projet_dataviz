@@ -45,11 +45,12 @@ const GEMINI_URL = process.env.GEMINI_BASE_URL || "https://generativelanguage.go
 const GROQ_URL = process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1";
 const GEMINI_MODELS = ["gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite"];
 const GEMINI_UTILITY = ["gemini-3.5-flash-lite", "gemini-3.7-flash"];
-const GROQ_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"];
-const GROQ_UTILITY = ["llama-3.1-8b-instant", "openai/gpt-oss-20b"];
+// Modèles de conversation disponibles chez Groq (les Llama 3.x ont été retirés).
+const GROQ_MODELS = ["openai/gpt-oss-120b", "qwen/qwen3.8-27b", "openai/gpt-oss-20b"];
+const GROQ_UTILITY = ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"];
 /** Limites de tokens par minute du tier gratuit Groq (une requête plus grosse est refusée d'office). */
 const GROQ_TPM: Record<string, number> = {
-  "openai/gpt-oss-120b": 8000, "openai/gpt-oss-20b": 8000, "llama-3.3-70b-versatile": 12000, "llama-3.1-8b-instant": 6000,
+  "openai/gpt-oss-120b": 8000, "openai/gpt-oss-20b": 8000, "qwen/qwen3.8-27b": 8000,
 };
 
 const list = (v?: string) => (v ?? "").split(/[\s,;]+/).map((s) => s.trim()).filter(Boolean);
@@ -289,6 +290,7 @@ export async function* streamCompletion(
     const body: Record<string, unknown> = { model: route.model, messages: prepare(messages, route, opts.compactSystem), stream: true, temperature: 0.2 };
     if (tools.length) Object.assign(body, { tools, tool_choice: "auto" });
     if (route.reasoning) body.reasoning_effort = route.reasoning;
+    if (route.model.startsWith("qwen/")) body.reasoning_format = "hidden"; // pas de raisonnement dans le texte affiché
     if (route.maxRequestTokens) {
       const est = estimateTokens(body);
       if (est > route.maxRequestTokens * 0.95) {
