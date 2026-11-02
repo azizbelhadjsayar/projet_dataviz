@@ -179,6 +179,9 @@ export async function probeKeys() {
   }));
 }
 
+/** Appel d'outil mal formé, refusé dans le flux par le fournisseur : on essaie l'accès suivant. */
+class ToolUseFailed extends Error {}
+
 export class LlmError extends Error {}
 
 export type StreamEvent =
@@ -433,7 +436,12 @@ export async function* streamCompletion(
     const extras: Record<string, unknown> = {};
 
     const absorb = (json: Record<string, unknown>, whole = false) => {
-      if (json.error) throw new LlmError(`${tag} : ${JSON.stringify(json.error).slice(0, 300)}`);
+      if (json.error) {
+        const err = JSON.stringify(json.error);
+        // Appel d'outil refusé par le fournisseur (ex. Groq : « color_by » à null) : erreur du modèle, pas fatale.
+        if (/tool_use_failed|Tool call validation failed|failed_generation/i.test(err)) throw new ToolUseFailed(err.slice(0, 200));
+        throw new LlmError(`${tag} : ${err.slice(0, 300)}`);
+      }
       const choice = (json.choices as Record<string, unknown>[] | undefined)?.[0];
       if (typeof choice?.finish_reason === "string") finishReason = choice.finish_reason;
       const delta = ((whole ? choice?.message : choice?.delta) ?? {}) as Record<string, unknown>;
@@ -468,31 +476,39 @@ export async function* streamCompletion(
       try {
         return absorb(JSON.parse(m[1]));
       } catch (e) {
-        if (e instanceof LlmError) throw e;
+        if (e instanceof LlmError || e instanceof ToolUseFailed) throw e;
         strayText += m[1];
         return [];
       }
     };
 
     const ctype = res.headers.get("content-type") ?? "";
-    if (!ctype.includes("text/event-stream")) {
-      // Réponse non streamée (certains fournisseurs avec outils)
-      for (const t of absorb(await res.json(), true)) yield { type: "delta", text: t };
-      sawDone = true;
-    } else {
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split(/\r?\n/);
-        buffer = lines.pop() ?? "";
-        for (const line of lines) for (const t of readLine(line)) yield { type: "delta", text: t };
+    try {
+      if (!ctype.includes("text/event-stream")) {
+        // Réponse non streamée (certains fournisseurs avec outils)
+        for (const t of absorb(await res.json(), true)) yield { type: "delta", text: t };
+        sawDone = true;
+      } else {
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? "";
+          for (const line of lines) for (const t of readLine(line)) yield { type: "delta", text: t };
+        }
+        buffer += decoder.decode();
+        for (const t of readLine(buffer)) yield { type: "delta", text: t }; // dernière ligne sans retour final
       }
-      buffer += decoder.decode();
-      for (const t of readLine(buffer)) yield { type: "delta", text: t }; // dernière ligne sans retour final
+    } catch (e) {
+      if (!(e instanceof ToolUseFailed)) throw e;
+      // On passe à l'accès suivant (autre clé, puis autre modèle) au lieu d'afficher l'erreur.
+      lastError = `${tag} → appel d'outil refusé : ${e.message}`;
+      console.warn(`[agent] ${lastError}`);
+      continue;
     }
 
     // Flux coupé : erreur glissée dans le flux, ou ni [DONE] ni motif d'arrêt.
