@@ -138,7 +138,7 @@ const COOLDOWN_DEFAULT_S = 20;
 /** Pause après épuisement d'un quota journalier (réessai au plus toutes les heures). */
 const DAILY_COOLDOWN_MS = 60 * 60_000;
 /** Attente maximale des en-têtes de réponse d'un modèle avant de passer à l'accès suivant. */
-const FIRST_BYTE_TIMEOUT_MS = 25_000;
+const FIRST_BYTE_TIMEOUT_MS = 15_000;
 /** Accès dont le quota du jour est épuisé (message d'erreur explicite). */
 const dailyExhausted = new Set<string>();
 
@@ -310,6 +310,12 @@ export async function* streamCompletion(
     if ((cooldown.get(route.id) ?? 0) > Date.now()) paused.push(route);
     else queue.push({ route });
   }
+  // Surcharge (503) ou absence de réponse : le problème vient du modèle, pas de la clé.
+  // On écarte le modèle pour toutes les clés du fournisseur, au lieu de l'essayer clé par clé.
+  const skipModel = (r: Route, ms: number) => {
+    tooLarge.add(r.model);
+    for (const x of routes) if (x.provider === r.provider && x.model === r.model) cooldown.set(x.id, Date.now() + ms);
+  };
   const started = Date.now();
   const resumed = new Set<string>();
   const resumeSoonest = () => {
@@ -366,7 +372,7 @@ export async function* streamCompletion(
       });
     } catch (e) {
       if (signal?.aborted) throw e;
-      if (timedOut) cooldown.set(route.id, Date.now() + 2 * 60_000);
+      if (timedOut) skipModel(route, 2 * 60_000);
       lastError = timedOut ? `${tag} → pas de réponse en ${FIRST_BYTE_TIMEOUT_MS / 1000} s` : `${tag} → réseau : ${(e as Error).message}`;
       console.warn(`[agent] ${lastError}`);
       continue;
@@ -403,6 +409,8 @@ export async function* streamCompletion(
           cooldown.set(route.id, Date.now() + s * 1000);
           paused.push(route);
         }
+      } else if (res.status === 503) {
+        skipModel(route, 60_000);
       } else if (!retried.has(route.id)) {
         retried.add(route.id);
         queue.unshift({ route, waitMs: 1500 }); // surcharge passagère : même accès, une fois
