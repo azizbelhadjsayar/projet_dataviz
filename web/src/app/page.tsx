@@ -1,30 +1,30 @@
-import { GraduationCap, LayoutDashboard, Percent, Scale, Send, Ticket, UserCheck } from "lucide-react";
+import { Percent, Scale, Send, Ticket } from "lucide-react";
 import { Suspense } from "react";
 import { ChartCard } from "@/components/ChartCard";
 import { FilterBar } from "@/components/FilterBar";
 import { HBarChart } from "@/components/charts/HBarChart";
 import { TrendChart } from "@/components/charts/TrendChart";
-import { HeroStat } from "@/components/HeroStat";
-import { Insights, PageHeader } from "@/components/PageHeader";
+import { Insights, NextStep } from "@/components/PageHeader";
+import { StoryHero } from "@/components/StoryHero";
 import { PageTransition } from "@/components/PageTransition";
 import { StatTile } from "@/components/StatTile";
 import { aggregate, labeled } from "@/lib/data/query";
 import { METRICS, SESSIONS, type MetricId } from "@/lib/data/schema";
-import { parseFilters, withSessionFilter, type SearchParams } from "@/lib/filters";
-import { fmtCompact, fmtInt, fmtPct, fmtRatio } from "@/lib/format";
+import { keepQuery, parseFilters, withSessionFilter, type SearchParams } from "@/lib/filters";
+import { fmtInt, fmtPct, fmtRatio } from "@/lib/format";
 import { filterOptions, scopeLabel } from "@/lib/page-data";
 
+// Quatre indicateurs qui portent la question centrale : la demande, l'offre, leur rapport et l'accès.
 const KPIS: { id: MetricId; icon: typeof Ticket }[] = [
-  { id: "nb_formations", icon: GraduationCap },
-  { id: "capacite", icon: Ticket },
   { id: "voeux_pp", icon: Send },
-  { id: "admis_total", icon: UserCheck },
-  { id: "taux_acces_moyen", icon: Percent },
+  { id: "capacite", icon: Ticket },
   { id: "voeux_par_place", icon: Scale },
+  { id: "taux_acces_moyen", icon: Percent },
 ];
 
 export default async function Overview({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const f = parseFilters(await searchParams);
+  const sp = await searchParams;
+  const f = parseFilters(sp);
   const ids = KPIS.map((k) => k.id);
   const cur = aggregate({ metrics: ids, filters: f.withSession }).rows[0] ?? {};
   const prev = f.previous ? aggregate({ metrics: ids, filters: withSessionFilter(f.scope, f.previous) }).rows[0] ?? {} : {};
@@ -58,6 +58,17 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   const gV = growth("voeux_pp"), gC = growth("capacite");
   const mostSelective = byAccess[0];
   const mostDemanded = [...byType].filter((r) => (r.nb_formations as number) >= 20).sort((a, b) => (b.voeux_par_place as number) - (a.voeux_par_place as number))[0];
+  // Titres-messages : ils énoncent ce que montre le graphique, recalculés pour le périmètre filtré.
+  const comparable = evo.filter((r) => (r.session as number) >= 2022 && r.taux_acces_moyen !== null);
+  const accFirst = comparable[0]?.taux_acces_moyen as number | undefined;
+  const accLast = comparable.at(-1)?.taux_acces_moyen as number | undefined;
+  const trendTitle = gV !== null && gC !== null
+    ? gV > gC ? "Les vœux progressent plus vite que les places" : "L'offre de places suit la demande"
+    : "Demande, offre et admissions";
+  const accessTitle = accFirst !== undefined && accLast !== undefined && comparable.length > 1
+    ? accLast < accFirst - 0.5 ? `L'accès se resserre depuis ${comparable[0].session}` : accLast > accFirst + 0.5 ? `L'accès s'améliore depuis ${comparable[0].session}` : `Un accès stable depuis ${comparable[0].session}`
+    : "Taux d'accès moyen";
+
   const signed = (v: number) => `${v >= 0 ? "+" : "−"}${fmtRatio(Math.abs(v))} %`;
   const insights = [
     gV !== null && gC !== null && (
@@ -73,40 +84,23 @@ export default async function Overview({ searchParams }: { searchParams: Promise
   ].filter(Boolean);
 
   const scope = scopeLabel(f.scope);
-  const vNow = cur.voeux_pp as number | null;
-  const vPrev = prev.voeux_pp as number | null | undefined;
-  const heroDelta = vNow && vPrev ? (100 * (vNow - vPrev)) / vPrev : null;
 
   return (
     <PageTransition>
-      <PageHeader title="Vue d'ensemble" eyebrow="Tableau de bord" icon={LayoutDashboard}>
-        Offre de formation, demande et accès dans Parcoursup de 2021 à 2025. Les indicateurs portent sur la session
-        choisie ; les courbes montrent l&apos;évolution sur les cinq sessions pour le même périmètre.
-      </PageHeader>
+      <StoryHero
+        session={f.session}
+        voeux={(cur.voeux_pp as number) ?? null}
+        places={(cur.capacite as number) ?? null}
+        voeuxParPlace={(cur.voeux_par_place as number) ?? null}
+        series={indexed.map((r) => ({ session: r.session, voeux: r.voeux_pp, places: r.capacite }))}
+        query={keepQuery(sp)}
+        scope={scope}
+      />
       <Suspense>
         <FilterBar options={filterOptions()} />
       </Suspense>
 
-      <HeroStat
-        label={`Vœux en phase principale · session ${f.session}`}
-        value={fmtCompact(vNow)}
-        aside={
-          <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-            <span className="text-muted">Places proposées</span>
-            <span className="tabular text-right font-medium text-ink">{fmtInt(cur.capacite as number)}</span>
-            <span className="text-muted">Vœux par place</span>
-            <span className="tabular text-right font-medium text-ink">{fmtRatio(cur.voeux_par_place as number)}</span>
-            <span className="text-muted">Formations</span>
-            <span className="tabular text-right font-medium text-ink">{fmtInt(cur.nb_formations as number)}</span>
-          </div>
-        }
-      >
-        {heroDelta !== null
-          ? <>{signed(heroDelta)} par rapport à {f.previous}. Périmètre : {scope}.</>
-          : <>Première session de la série. Périmètre : {scope}.</>}
-      </HeroStat>
-
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
         {KPIS.map((k) => (
           <StatTile
             key={k.id}
@@ -126,8 +120,8 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       <div className="mt-4 grid gap-4 xl:grid-cols-3">
         <ChartCard
           className="xl:col-span-2"
-          title="Demande, offre et admissions"
-          subtitle={`Indice base 100 en 2021 · ${scope}`}
+          title={trendTitle}
+          subtitle={`Vœux, places et admis en indice base 100 en 2021 · ${scope}`}
           aiQuestion={`Analyse l'évolution 2021-2025 des vœux en phase principale, des places et des admis (périmètre : ${scope}). La demande progresse-t-elle plus vite que l'offre ? Quelles filières expliquent l'évolution, notamment en 2025 ?`}
           table={{
             columns: ["Session", "Vœux PP", "Places", "Admis", "Formations"],
@@ -147,17 +141,17 @@ export default async function Overview({ searchParams }: { searchParams: Promise
           />
         </ChartCard>
         <ChartCard
-          title="Taux d'accès moyen"
-          subtitle="Pondéré par les vœux, par session"
+          title={accessTitle}
+          subtitle="Taux d'accès moyen pondéré par les vœux, par session"
           aiQuestion={`Pourquoi le taux d'accès moyen évolue-t-il ainsi entre 2021 et 2025 (périmètre : ${scope}) ? Distingue l'effet de la définition 2021 et les évolutions réelles par type de formation.`}
           table={{ columns: ["Session", "Taux d'accès"], rows: evo.map((r) => [String(r.session), fmtPct(r.taux_acces_moyen as number)]) }}
-          note="Le taux d'accès 2021 repose sur une définition source différente : la rupture 2021 → 2022 est en partie méthodologique."
+          note="Point 2021 en creux : le taux d'accès 2021 repose sur une définition source différente, la rupture 2021 → 2022 est en partie méthodologique."
         >
           <TrendChart
             data={evo.map((r) => ({ session: r.session as number, taux: r.taux_acces_moyen as number }))}
             unit="pct"
             yDomain={[0, 100]}
-            annotations={[{ x: 2021, label: "déf. différente" }]}
+            hollow={[2021]}
             series={[{ key: "taux", label: "Taux d'accès moyen", color: "var(--series-1)" }]}
           />
         </ChartCard>
@@ -165,7 +159,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <ChartCard
-          title="Où se portent les vœux"
+          title={byType.length > 1 ? `${byType[0].label} : le plus de vœux` : "Où se portent les vœux"}
           subtitle={`Vœux en phase principale par type de formation · ${f.session}`}
           aiQuestion={`Compare les types de formation en ${f.session} (périmètre : ${scope}) : vœux, places, vœux par place et taux d'accès. Lesquels sont sous tension ?`}
           table={{
@@ -173,22 +167,23 @@ export default async function Overview({ searchParams }: { searchParams: Promise
             rows: byType.map((r) => [r.label, fmtInt(r.voeux_pp as number), fmtInt(r.capacite as number), fmtRatio(r.voeux_par_place as number), fmtInt(r.nb_formations as number)]),
           }}
         >
-          <HBarChart data={byType} unit="count" labelWidth={140} series={[{ key: "voeux_pp", label: "Vœux (PP)", color: "var(--series-1)" }]} />
+          <HBarChart data={byType} unit="count" labelWidth={140} highlight={byType.length > 1 ? [String(byType[0].label)] : undefined} series={[{ key: "voeux_pp", label: "Vœux (PP)", color: "var(--series-1)" }]} />
         </ChartCard>
         <ChartCard
-          title="Accès selon le type de formation"
+          title={byAccess.length > 1 ? `${mostSelective.label} : l'accès le plus difficile` : "Accès selon le type de formation"}
           subtitle={`Taux d'accès moyen par type de formation · ${f.session}`}
           aiQuestion={`Explique les écarts de taux d'accès moyen entre types de formation en ${f.session} (périmètre : ${scope}) : quels facteurs (pression, sélectivité, secteur) les expliquent ?`}
           table={{ columns: ["Type", "Taux d'accès moyen"], rows: byAccess.map((r) => [r.label, fmtPct(r.taux_acces_moyen as number)]) }}
           note="Taux d'accès : part des candidats d'une formation qui ont pu recevoir une proposition (rang du dernier appelé)."
         >
-          <HBarChart data={byAccess} unit="pct" labelWidth={140} xDomain={[0, 100]} series={[{ key: "taux_acces_moyen", label: "Taux d'accès moyen", color: "var(--series-1)" }]} />
+          <HBarChart data={byAccess} unit="pct" labelWidth={140} xDomain={[0, 100]} highlight={byAccess.length > 1 ? [String(mostSelective.label)] : undefined} series={[{ key: "taux_acces_moyen", label: "Taux d'accès moyen", color: "var(--series-1)" }]} />
         </ChartCard>
       </div>
 
       <div className="mt-6">
         <Insights items={insights} />
       </div>
+      <NextStep href={`/formations${keepQuery(sp)}`} step="Où ?" title="Quelles filières sont les plus sous tension ?">Demande par place et taux d’accès, filière par filière.</NextStep>
     </PageTransition>
   );
 }

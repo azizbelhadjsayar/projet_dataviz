@@ -13,6 +13,16 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
+/** « ?session=…&type=… » : les filtres globaux à conserver dans un lien vers un autre tableau de bord. */
+export function keepQuery(sp: SearchParams) {
+  const q = new URLSearchParams();
+  for (const k of ["session", ...Object.keys(URL_FILTERS)]) {
+    const v = first(sp[k]);
+    if (v) q.set(k, v);
+  }
+  return q.size ? `?${q}` : "";
+}
+
 export interface PageFilters {
   session: number;
   /** Filtres hors session (pour les évolutions 2021-2025). */

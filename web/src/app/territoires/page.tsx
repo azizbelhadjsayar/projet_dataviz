@@ -1,12 +1,12 @@
 import { MapPinned } from "lucide-react";
 import { Suspense } from "react";
 import { FilterBar } from "@/components/FilterBar";
-import { Insights, PageHeader } from "@/components/PageHeader";
+import { Insights, NextStep, PageHeader } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { TerritoryExplorer, type TerritoryRow } from "@/components/TerritoryExplorer";
 import { aggregate, normalize } from "@/lib/data/query";
 import { METRICS, type MetricId } from "@/lib/data/schema";
-import { parseFilters, type SearchParams } from "@/lib/filters";
+import { keepQuery, parseFilters, type SearchParams } from "@/lib/filters";
 import { fmtPct, fmtRatio } from "@/lib/format";
 import { getShapes, MAP_HEIGHT, MAP_WIDTH } from "@/lib/geo";
 import { filterOptions, scopeLabel } from "@/lib/page-data";
@@ -17,7 +17,8 @@ const MAP_METRICS: MetricId[] = [
 ];
 
 export default async function TerritoiresPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const f = parseFilters(await searchParams);
+  const sp = await searchParams;
+  const f = parseFilters(sp);
   // La carte montre toute la France : on ignore le filtre région pour cette page.
   const { region: _region, ...scope } = f.withSession;
   void _region;
@@ -50,7 +51,7 @@ export default async function TerritoiresPage({ searchParams }: { searchParams: 
 
   return (
     <PageTransition>
-      <PageHeader title="Territoires" eyebrow="Tableau de bord" icon={MapPinned}>
+      <PageHeader title="Territoires" eyebrow="Où ? · les territoires" chapter="03" icon={MapPinned}>
         Répartition géographique de l&apos;offre, de la demande et du recrutement. Choisissez l&apos;indicateur et l&apos;échelon ;
         les couleurs sont réparties en classes de quantiles (chaque teinte regroupe un nombre comparable de territoires). Cliquez sur un territoire pour son détail.
       </PageHeader>
@@ -69,6 +70,7 @@ export default async function TerritoiresPage({ searchParams }: { searchParams: 
       <div className="mt-6">
         <Insights items={insights} />
       </div>
+      <NextStep href={`/profils${keepQuery(sp)}`} step="Pour qui ?" title="Qui pâtit le plus de la tension ?">Accès des boursiers et origine scolaire des admis.</NextStep>
     </PageTransition>
   );
 }

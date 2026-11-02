@@ -1,6 +1,6 @@
 "use client";
 
-import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { Unit } from "@/lib/data/schema";
 import { fmtValue } from "@/lib/format";
 import { AXIS_TICK, ChartTooltip, Legend, truncate, type Series } from "./common";
@@ -14,10 +14,12 @@ interface Props {
   /** Stack à 100 % (parts) au lieu de barres groupées. */
   stacked?: boolean;
   xDomain?: [number, number | "auto" | "dataMax"];
+  /** Mise en évidence (une seule série) : ces libellés gardent la couleur de la série, les autres passent en gris. */
+  highlight?: string[];
 }
 
 /** Barres horizontales : une série (valeur en bout de barre), plusieurs séries groupées, ou empilées à 100 %. */
-export function HBarChart({ data, series, unit, labelKey = "label", labelWidth = 170, stacked = false, xDomain }: Props) {
+export function HBarChart({ data, series, unit, labelKey = "label", labelWidth = 170, stacked = false, xDomain, highlight }: Props) {
   const single = series.length === 1;
   const barSize = stacked || single ? 16 : 10;
   const rowHeight = stacked || single ? 30 : 12 * series.length + 14;
@@ -70,8 +72,11 @@ export function HBarChart({ data, series, unit, labelKey = "label", labelWidth =
                 radius={stacked ? (i === series.length - 1 ? [0, 4, 4, 0] : 0) : [0, 4, 4, 0]}
                 stroke={stacked ? "var(--surface)" : undefined}
                 strokeWidth={stacked ? 2 : 0}
-                isAnimationActive={false}
+                isAnimationActive animationDuration={750} animationEasing="ease-out"
               >
+                {single && highlight && data.map((d) => (
+                  <Cell key={String(d[labelKey])} fill={highlight.includes(String(d[labelKey])) ? s.color : "var(--neutral)"} />
+                ))}
                 {single && (
                   <LabelList
                     dataKey={s.key}

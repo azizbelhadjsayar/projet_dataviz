@@ -61,9 +61,9 @@ export function Dumbbell({ data, series, unit }: Props) {
                 {scale.ticks.map((t) => (
                   <span key={t} aria-hidden className="absolute inset-y-0 w-px bg-grid" style={{ left: `${pos(t)}%` }} />
                 ))}
-                <span aria-hidden className="absolute top-1/2 h-0.5 -translate-y-1/2 rounded bg-axis" style={{ left: `${left}%`, width: `${right - left}%` }} />
+                <span aria-hidden className="db-line absolute top-1/2 h-0.5 -translate-y-1/2 rounded bg-axis" style={{ left: `${left}%`, width: `${right - left}%` }} />
                 {[{ v: a, s: s0 }, { v: b, s: s1 }].map(({ v, s }) => (
-                  <span key={s.key} aria-hidden className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface"
+                  <span key={s.key} aria-hidden className="db-dot absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface"
                     style={{ left: `${pos(v)}%`, background: s.color }} />
                 ))}
                 <span className="tabular absolute top-1/2 -translate-y-1/2 whitespace-nowrap text-[11px] text-ink-2" style={{ right: `calc(${100 - left}% + 10px)` }}>

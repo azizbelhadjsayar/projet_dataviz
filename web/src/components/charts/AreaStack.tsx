@@ -54,7 +54,7 @@ export function AreaStack({ data, series, unit, height = 300, yDomain, hideLegen
                 fillOpacity={stacked ? 0.92 : series.length > 1 ? 0.14 : 0.2}
                 dot={stacked ? false : { r: 3.5, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
                 activeDot={{ r: 4.5, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
-                isAnimationActive={false}
+                isAnimationActive animationDuration={750} animationEasing="ease-out"
                 connectNulls
               />
             ))}

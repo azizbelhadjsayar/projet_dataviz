@@ -69,16 +69,22 @@ export function TerritoryExplorer({ metrics, regions, departements, width, heigh
     return level === "regions" ? rows : rows.slice(0, 15);
   }, [data, metricId, level]);
 
+  // Titre-message : le territoire en tête du classement pour l'indicateur choisi.
+  const top = ranked[0];
+  const title = top && ranked.length > 1
+    ? `${metric.label} : ${top.label} en tête (${fmtValue(top.value ?? null, metric.unit)})`
+    : `${metric.label} par ${level === "regions" ? "région" : "département"}`;
+
   const sel = selected ? data.rows.find((r) => r.code === selected) : null;
   const rank = sel ? [...data.rows].filter((r) => r.values[metricId] !== null)
     .sort((a, b) => (b.values[metricId] as number) - (a.values[metricId] as number)).findIndex((r) => r.code === sel.code) + 1 : 0;
 
   return (
-    <section className="rounded-xl border border-line bg-surface p-4 shadow-card sm:p-5">
+    <section className="card reveal rounded-xl border border-line p-4 shadow-card sm:p-5">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="text-[0.975rem] font-semibold">{metric.label} par {level === "regions" ? "région" : "département"}</h2>
-          <p className="mt-0.5 text-[0.8125rem] text-muted">{subtitle}</p>
+          <h2 className="text-[0.975rem] font-semibold">{title}</h2>
+          <p className="mt-0.5 text-[0.8125rem] text-muted">{level === "regions" ? "Par région" : "Par département"} · {subtitle}</p>
           <p className="mt-1 max-w-2xl text-xs text-ink-2">{metric.description}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -168,6 +174,7 @@ export function TerritoryExplorer({ metrics, regions, departements, width, heigh
                 unit={metric.unit}
                 labelWidth={170}
                 xDomain={metric.unit === "pct" ? [0, 100] : undefined}
+                highlight={top ? [top.label] : undefined}
                 series={[{ key: "value", label: metric.label, color: "var(--series-1)" }]}
               />
             </div>

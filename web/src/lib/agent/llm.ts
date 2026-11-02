@@ -7,6 +7,7 @@ import "server-only";
 //   GROQ_API_KEYS=gsk_a,gsk_b,...   clés Groq (secours, utilisées à tour de rôle) — GROQ_API_KEY accepté aussi
 //   LLM_MODEL / LLM_FALLBACK_MODELS modèles Gemini ; GROQ_MODELS modèles Groq ; LLM_REASONING_EFFORT
 //   LLM_BASE_URL + LLM_API_KEY      remplace tout par un fournisseur compatible unique
+//   LLM_PREFER=groq                 Groq en premier, Gemini en secours
 // Un accès qui renvoie un 429 est mis en pause le temps indiqué par le fournisseur (pas réessayé à chaque étape).
 
 export interface ToolCall {
@@ -94,7 +95,8 @@ function buildRoutes(kind: "agent" | "utility", rotate = true): Route[] {
   // Un groupe par modèle Gemini (toutes les clés, à tour de rôle).
   const geminiFor = (model: string): Route[] => geminiKeys.map(({ key, no }) => ({
     id: `gemini:${no}:${model}`, provider: "gemini", providerLabel: "Gemini", baseUrl: GEMINI_URL, apiKey: key, keyNo: no, model,
-    compact: false, reasoning: kind === "utility" ? "minimal" : env.LLM_REASONING_EFFORT || undefined,
+    // « minimal » n'est accepté que par les modèles Lite (gemini-3.7-flash le refuse : erreur 400).
+    compact: false, reasoning: kind === "utility" ? (model.includes("lite") ? "minimal" : "low") : env.LLM_REASONING_EFFORT || undefined,
   }));
   const gemini = geminiModels.map(geminiFor);
 
@@ -105,6 +107,9 @@ function buildRoutes(kind: "agent" | "utility", rotate = true): Route[] {
     compact: true, maxRequestTokens: GROQ_TPM[model],
     reasoning: model.startsWith("openai/gpt-oss") ? "low" : undefined,
   }));
+
+  // LLM_PREFER=groq : Groq d'abord (toutes ses clés et modèles), Gemini en secours.
+  if (env.LLM_PREFER === "groq") return [...groqModels.flatMap(groqFor), ...gemini.flat()];
 
   // Ordre : 2 meilleurs Gemini (toutes les clés), puis 1er modèle Groq (toutes les clés),
   // puis Gemini restants, puis Groq restants.
@@ -137,6 +142,8 @@ const cooldown = new Map<string, number>();
 const COOLDOWN_DEFAULT_S = 20;
 /** Pause après épuisement d'un quota journalier (réessai au plus toutes les heures). */
 const DAILY_COOLDOWN_MS = 60 * 60_000;
+/** Attente maximale des en-têtes de réponse d'un modèle avant de passer à l'accès suivant. */
+const FIRST_BYTE_TIMEOUT_MS = 15_000;
 /** Accès dont le quota du jour est épuisé (message d'erreur explicite). */
 const dailyExhausted = new Set<string>();
 
@@ -171,6 +178,9 @@ export async function probeKeys() {
     }
   }));
 }
+
+/** Appel d'outil mal formé, refusé dans le flux par le fournisseur : on essaie l'accès suivant. */
+class ToolUseFailed extends Error {}
 
 export class LlmError extends Error {}
 
@@ -308,6 +318,12 @@ export async function* streamCompletion(
     if ((cooldown.get(route.id) ?? 0) > Date.now()) paused.push(route);
     else queue.push({ route });
   }
+  // Surcharge (503) ou absence de réponse : le problème vient du modèle, pas de la clé.
+  // On écarte le modèle pour toutes les clés du fournisseur, au lieu de l'essayer clé par clé.
+  const skipModel = (r: Route, ms: number) => {
+    tooLarge.add(r.model);
+    for (const x of routes) if (x.provider === r.provider && x.model === r.model) cooldown.set(x.id, Date.now() + ms);
+  };
   const started = Date.now();
   const resumed = new Set<string>();
   const resumeSoonest = () => {
@@ -332,7 +348,9 @@ export async function* streamCompletion(
     if (waitMs) await sleep(waitMs, signal);
     const tag = `${route.providerLabel} #${route.keyNo} ${route.model}`;
 
-    const body: Record<string, unknown> = { model: route.model, messages: prepare(messages, route, opts.compactSystem), stream: true, temperature: 0.2 };
+    const body: Record<string, unknown> = { model: route.model, messages: prepare(messages, route, opts.compactSystem), stream: true };
+    // Les modèles de raisonnement OpenAI (gpt-5*, o*) refusent une température autre que la valeur par défaut.
+    if (!/^(gpt-5|o\d)/.test(route.model)) body.temperature = 0.2;
     if (tools.length) Object.assign(body, { tools, tool_choice: "auto" });
     if (route.reasoning) body.reasoning_effort = route.reasoning;
     if (route.model.startsWith("qwen/")) body.reasoning_format = "hidden"; // pas de raisonnement dans le texte affiché
@@ -345,19 +363,29 @@ export async function* streamCompletion(
       }
     }
 
+    // Délai de première réponse : un modèle surchargé qui ne répond pas est mis en pause au profit du suivant,
+    // au lieu de bloquer toute l'analyse. Le délai ne s'applique plus une fois le flux ouvert.
+    const ctrl = new AbortController();
+    const forward = () => ctrl.abort();
+    signal?.addEventListener("abort", forward, { once: true });
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, FIRST_BYTE_TIMEOUT_MS);
     let res: Response;
     try {
       res = await fetch(`${route.baseUrl}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${route.apiKey}` },
         body: JSON.stringify(body),
-        signal,
+        signal: ctrl.signal,
       });
     } catch (e) {
       if (signal?.aborted) throw e;
-      lastError = `${tag} → réseau : ${(e as Error).message}`;
+      if (timedOut) skipModel(route, 2 * 60_000);
+      lastError = timedOut ? `${tag} → pas de réponse en ${FIRST_BYTE_TIMEOUT_MS / 1000} s` : `${tag} → réseau : ${(e as Error).message}`;
       console.warn(`[agent] ${lastError}`);
       continue;
+    } finally {
+      clearTimeout(timer);
     }
     if (!res.ok) {
       const text = await res.text();
@@ -389,6 +417,8 @@ export async function* streamCompletion(
           cooldown.set(route.id, Date.now() + s * 1000);
           paused.push(route);
         }
+      } else if (res.status === 503) {
+        skipModel(route, 60_000);
       } else if (!retried.has(route.id)) {
         retried.add(route.id);
         queue.unshift({ route, waitMs: 1500 }); // surcharge passagère : même accès, une fois
@@ -406,7 +436,12 @@ export async function* streamCompletion(
     const extras: Record<string, unknown> = {};
 
     const absorb = (json: Record<string, unknown>, whole = false) => {
-      if (json.error) throw new LlmError(`${tag} : ${JSON.stringify(json.error).slice(0, 300)}`);
+      if (json.error) {
+        const err = JSON.stringify(json.error);
+        // Appel d'outil refusé par le fournisseur (ex. Groq : « color_by » à null) : erreur du modèle, pas fatale.
+        if (/tool_use_failed|Tool call validation failed|failed_generation/i.test(err)) throw new ToolUseFailed(err.slice(0, 200));
+        throw new LlmError(`${tag} : ${err.slice(0, 300)}`);
+      }
       const choice = (json.choices as Record<string, unknown>[] | undefined)?.[0];
       if (typeof choice?.finish_reason === "string") finishReason = choice.finish_reason;
       const delta = ((whole ? choice?.message : choice?.delta) ?? {}) as Record<string, unknown>;
@@ -441,31 +476,39 @@ export async function* streamCompletion(
       try {
         return absorb(JSON.parse(m[1]));
       } catch (e) {
-        if (e instanceof LlmError) throw e;
+        if (e instanceof LlmError || e instanceof ToolUseFailed) throw e;
         strayText += m[1];
         return [];
       }
     };
 
     const ctype = res.headers.get("content-type") ?? "";
-    if (!ctype.includes("text/event-stream")) {
-      // Réponse non streamée (certains fournisseurs avec outils)
-      for (const t of absorb(await res.json(), true)) yield { type: "delta", text: t };
-      sawDone = true;
-    } else {
-      const reader = res.body!.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      for (;;) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split(/\r?\n/);
-        buffer = lines.pop() ?? "";
-        for (const line of lines) for (const t of readLine(line)) yield { type: "delta", text: t };
+    try {
+      if (!ctype.includes("text/event-stream")) {
+        // Réponse non streamée (certains fournisseurs avec outils)
+        for (const t of absorb(await res.json(), true)) yield { type: "delta", text: t };
+        sawDone = true;
+      } else {
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split(/\r?\n/);
+          buffer = lines.pop() ?? "";
+          for (const line of lines) for (const t of readLine(line)) yield { type: "delta", text: t };
+        }
+        buffer += decoder.decode();
+        for (const t of readLine(buffer)) yield { type: "delta", text: t }; // dernière ligne sans retour final
       }
-      buffer += decoder.decode();
-      for (const t of readLine(buffer)) yield { type: "delta", text: t }; // dernière ligne sans retour final
+    } catch (e) {
+      if (!(e instanceof ToolUseFailed)) throw e;
+      // On passe à l'accès suivant (autre clé, puis autre modèle) au lieu d'afficher l'erreur.
+      lastError = `${tag} → appel d'outil refusé : ${e.message}`;
+      console.warn(`[agent] ${lastError}`);
+      continue;
     }
 
     // Flux coupé : erreur glissée dans le flux, ou ni [DONE] ni motif d'arrêt.

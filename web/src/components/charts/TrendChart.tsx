@@ -18,10 +18,12 @@ interface Props {
   annotations?: { x: number | string; label: string }[];
   /** Petits multiples : pas de légende ni d'étiquettes de fin (légende commune au-dessus des panneaux). */
   hideLegend?: boolean;
+  /** Points non comparables (ex. 2021, définition différente) : dessinés en creux. */
+  hollow?: (number | string)[];
 }
 
 /** Courbes d'évolution sur un seul axe, infobulle avec réticule listant toutes les séries. */
-export function TrendChart({ data, series, unit, xKey = "session", height = 280, reference, yDomain, annotations, hideLegend }: Props) {
+export function TrendChart({ data, series, unit, xKey = "session", height = 280, reference, yDomain, annotations, hideLegend, hollow }: Props) {
   // Étiquettes de fin de ligne seulement si elles ne se chevauchent pas ; sinon légende + infobulle.
   const last = data.at(-1);
   const vals = series.map((s) => last?.[s.key]).filter((v): v is number => typeof v === "number");
@@ -64,9 +66,16 @@ export function TrendChart({ data, series, unit, xKey = "session", height = 280,
                 strokeWidth={2}
                 strokeLinejoin="round"
                 strokeLinecap="round"
-                dot={{ r: 4, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
+                dot={hollow
+                  ? (p: { cx?: number; cy?: number; index?: number; payload?: Record<string, unknown> }) => {
+                      const open = hollow.includes(p.payload?.[xKey] as number | string);
+                      return p.cx == null || p.cy == null ? <g key={p.index} /> : (
+                        <circle key={p.index} cx={p.cx} cy={p.cy} r={4} fill={open ? "var(--surface)" : s.color} stroke={open ? s.color : "var(--surface)"} strokeWidth={2} />
+                      );
+                    }
+                  : { r: 4, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
                 activeDot={{ r: 5, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
-                isAnimationActive={false}
+                isAnimationActive animationDuration={750} animationEasing="ease-out"
                 connectNulls
                 label={
                   endLabels && series.length > 1

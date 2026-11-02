@@ -21,8 +21,8 @@ export function Sparkline({ values, highlight = values.length - 1, width = 96, h
   const h = pts.find((p) => p.i === highlight);
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} aria-hidden className="overflow-visible">
-      <path d={d} fill="none" stroke="var(--axis)" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
-      {h && <circle cx={x(h.i)} cy={y(h.v)} r={3.5} fill="var(--accent)" stroke="var(--surface)" strokeWidth={2} />}
+      <path className="spark-path" pathLength={1} d={d} fill="none" stroke="var(--axis)" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+      {h && <circle className="spark-dot" cx={x(h.i)} cy={y(h.v)} r={3.5} fill="var(--accent)" stroke="var(--surface)" strokeWidth={2} />}
     </svg>
   );
 }

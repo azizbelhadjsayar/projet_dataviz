@@ -1,4 +1,4 @@
-import { BookOpen, ChartColumnBig, GraduationCap, LayoutDashboard, MapPinned, Search, Sparkles, Users, type LucideIcon } from "lucide-react";
+import { BookOpen, GraduationCap, LayoutDashboard, MapPinned, Search, Sparkles, Users, type LucideIcon } from "lucide-react";
 
 // Structure de navigation partagée (barre latérale, menu mobile, fil d'Ariane).
 
@@ -24,14 +24,13 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "Exploration",
     items: [
-      { href: "/explorer", label: "Explorer les formations", icon: Search, keepFilters: true },
       { href: "/assistant", label: "Agent d'analyse", icon: Sparkles, badge: "IA" },
+      { href: "/explorer", label: "Explorer les formations", icon: Search, keepFilters: true },
     ],
   },
   {
     title: "Ressources",
     items: [
-      { href: "/powerbi", label: "Rapport Power BI", icon: ChartColumnBig },
       { href: "/methodologie", label: "Données & méthode", icon: BookOpen },
     ],
   },
