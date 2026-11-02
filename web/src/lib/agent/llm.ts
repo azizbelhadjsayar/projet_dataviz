@@ -137,6 +137,8 @@ const cooldown = new Map<string, number>();
 const COOLDOWN_DEFAULT_S = 20;
 /** Pause après épuisement d'un quota journalier (réessai au plus toutes les heures). */
 const DAILY_COOLDOWN_MS = 60 * 60_000;
+/** Attente maximale des en-têtes de réponse d'un modèle avant de passer à l'accès suivant. */
+const FIRST_BYTE_TIMEOUT_MS = 25_000;
 /** Accès dont le quota du jour est épuisé (message d'erreur explicite). */
 const dailyExhausted = new Set<string>();
 
@@ -332,7 +334,9 @@ export async function* streamCompletion(
     if (waitMs) await sleep(waitMs, signal);
     const tag = `${route.providerLabel} #${route.keyNo} ${route.model}`;
 
-    const body: Record<string, unknown> = { model: route.model, messages: prepare(messages, route, opts.compactSystem), stream: true, temperature: 0.2 };
+    const body: Record<string, unknown> = { model: route.model, messages: prepare(messages, route, opts.compactSystem), stream: true };
+    // Les modèles de raisonnement OpenAI (gpt-5*, o*) refusent une température autre que la valeur par défaut.
+    if (!/^(gpt-5|o\d)/.test(route.model)) body.temperature = 0.2;
     if (tools.length) Object.assign(body, { tools, tool_choice: "auto" });
     if (route.reasoning) body.reasoning_effort = route.reasoning;
     if (route.model.startsWith("qwen/")) body.reasoning_format = "hidden"; // pas de raisonnement dans le texte affiché
@@ -345,19 +349,29 @@ export async function* streamCompletion(
       }
     }
 
+    // Délai de première réponse : un modèle surchargé qui ne répond pas est mis en pause au profit du suivant,
+    // au lieu de bloquer toute l'analyse. Le délai ne s'applique plus une fois le flux ouvert.
+    const ctrl = new AbortController();
+    const forward = () => ctrl.abort();
+    signal?.addEventListener("abort", forward, { once: true });
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, FIRST_BYTE_TIMEOUT_MS);
     let res: Response;
     try {
       res = await fetch(`${route.baseUrl}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${route.apiKey}` },
         body: JSON.stringify(body),
-        signal,
+        signal: ctrl.signal,
       });
     } catch (e) {
       if (signal?.aborted) throw e;
-      lastError = `${tag} → réseau : ${(e as Error).message}`;
+      if (timedOut) cooldown.set(route.id, Date.now() + 2 * 60_000);
+      lastError = timedOut ? `${tag} → pas de réponse en ${FIRST_BYTE_TIMEOUT_MS / 1000} s` : `${tag} → réseau : ${(e as Error).message}`;
       console.warn(`[agent] ${lastError}`);
       continue;
+    } finally {
+      clearTimeout(timer);
     }
     if (!res.ok) {
       const text = await res.text();
