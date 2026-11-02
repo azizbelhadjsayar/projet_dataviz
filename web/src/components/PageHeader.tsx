@@ -9,11 +9,13 @@ interface Props {
   icon?: LucideIcon;
   children?: ReactNode;
   actions?: ReactNode;
+  /** Numéro de chapitre du parcours (ex. « 02 »), affiché en grand à côté du titre. */
+  chapter?: string;
   /** Fil d'Ariane : [{label, href?}] */
   crumbs?: { label: string; href?: string }[];
 }
 
-export function PageHeader({ title, eyebrow, icon: Icon, children, actions, crumbs }: Props) {
+export function PageHeader({ title, eyebrow, icon: Icon, children, actions, crumbs, chapter }: Props) {
   return (
     <header className="mb-6">
       {crumbs && (
@@ -27,7 +29,9 @@ export function PageHeader({ title, eyebrow, icon: Icon, children, actions, crum
         </nav>
       )}
       <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0 max-w-3xl">
+        <div className="flex min-w-0 max-w-4xl items-start gap-5">
+          {chapter && <span aria-hidden className="chapter-num animate-fade-up hidden text-[6.5rem] sm:block">{chapter}</span>}
+          <div className="min-w-0">
           {eyebrow && (
             <p className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent-soft/70 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
               {Icon && <Icon size={14} strokeWidth={2} />} {eyebrow}
@@ -35,6 +39,7 @@ export function PageHeader({ title, eyebrow, icon: Icon, children, actions, crum
           )}
           <h1 className="title-gradient pb-1 text-3xl font-bold tracking-tight sm:text-[2.35rem] sm:leading-tight">{title}</h1>
           {children && <p className="mt-2 text-sm leading-relaxed text-ink-2 sm:text-[0.9375rem]">{children}</p>}
+          </div>
         </div>
         {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
       </div>

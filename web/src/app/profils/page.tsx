@@ -66,7 +66,7 @@ export default async function ProfilsPage({ searchParams }: { searchParams: Prom
 
   return (
     <PageTransition>
-      <PageHeader title="Profils & équité" eyebrow="Tableau de bord" icon={Users}>
+      <PageHeader title="Profils & équité" eyebrow="Pour qui ?" chapter="04" icon={Users}>
         Pour qui l&apos;accès se resserre-t-il ? Accès des boursiers et origine scolaire des admis. Les parts d&apos;admis portent sur
         les admis néo-bacheliers (bac de l&apos;année).
       </PageHeader>

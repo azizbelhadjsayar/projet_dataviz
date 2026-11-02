@@ -1,11 +1,11 @@
-import { LayoutDashboard, Percent, Scale, Send, Ticket } from "lucide-react";
-import Link from "next/link";
+import { Percent, Scale, Send, Ticket } from "lucide-react";
 import { Suspense } from "react";
 import { ChartCard } from "@/components/ChartCard";
 import { FilterBar } from "@/components/FilterBar";
 import { HBarChart } from "@/components/charts/HBarChart";
 import { TrendChart } from "@/components/charts/TrendChart";
-import { Insights, NextStep, PageHeader } from "@/components/PageHeader";
+import { Insights, NextStep } from "@/components/PageHeader";
+import { StoryHero } from "@/components/StoryHero";
 import { PageTransition } from "@/components/PageTransition";
 import { StatTile } from "@/components/StatTile";
 import { aggregate, labeled } from "@/lib/data/query";
@@ -87,30 +87,15 @@ export default async function Overview({ searchParams }: { searchParams: Promise
 
   return (
     <PageTransition>
-      <PageHeader title="Vue d'ensemble" eyebrow="Tableau de bord" icon={LayoutDashboard}>
-        Offre de formation, demande et accès dans Parcoursup de 2021 à 2025. Les indicateurs portent sur la session
-        choisie ; les courbes montrent l&apos;évolution sur les cinq sessions pour le même périmètre.
-      </PageHeader>
-
-      <section aria-label="Problématique" className="hero mb-6 rounded-2xl p-5 shadow-raised sm:p-7">
-        <div aria-hidden className="hero-shine" />
-        <p className="hero-chip inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider">Question centrale</p>
-        <p className="mt-3 max-w-3xl text-xl font-bold leading-snug tracking-tight sm:text-[1.65rem]">
-          La demande progresse plus vite que l&apos;offre : où et pour qui l&apos;accès à l&apos;enseignement supérieur se resserre-t-il ?
-        </p>
-        <dl className="mt-4 grid gap-x-6 gap-y-1.5 text-sm text-white/85 sm:grid-cols-[auto_1fr]">
-          <dt className="font-semibold text-white">Destinataire</dt>
-          <dd>Responsables de l&apos;offre de formation (ministère, rectorats, établissements).</dd>
-          <dt className="font-semibold text-white">Intention</dt>
-          <dd>Éclairer une décision : où ouvrir des places en priorité.</dd>
-          <dt className="font-semibold text-white">Parcours</dt>
-          <dd>
-            Ampleur de la tension (cette page) · Où : <Link className="font-medium" href="/formations">filières</Link> et{" "}
-            <Link className="font-medium" href="/territoires">territoires</Link> · Pour qui :{" "}
-            <Link className="font-medium" href="/profils">équité</Link> · Questions libres : <Link className="font-medium" href="/assistant">agent d&apos;analyse</Link>
-          </dd>
-        </dl>
-      </section>
+      <StoryHero
+        session={f.session}
+        voeux={(cur.voeux_pp as number) ?? null}
+        places={(cur.capacite as number) ?? null}
+        voeuxParPlace={(cur.voeux_par_place as number) ?? null}
+        series={indexed.map((r) => ({ session: r.session, voeux: r.voeux_pp, places: r.capacite }))}
+        query={keepQuery(sp)}
+        scope={scope}
+      />
       <Suspense>
         <FilterBar options={filterOptions()} />
       </Suspense>

@@ -51,7 +51,7 @@ export default async function TerritoiresPage({ searchParams }: { searchParams: 
 
   return (
     <PageTransition>
-      <PageHeader title="Territoires" eyebrow="Tableau de bord" icon={MapPinned}>
+      <PageHeader title="Territoires" eyebrow="Où ? · les territoires" chapter="03" icon={MapPinned}>
         Répartition géographique de l&apos;offre, de la demande et du recrutement. Choisissez l&apos;indicateur et l&apos;échelon ;
         les couleurs sont réparties en classes de quantiles (chaque teinte regroupe un nombre comparable de territoires). Cliquez sur un territoire pour son détail.
       </PageHeader>

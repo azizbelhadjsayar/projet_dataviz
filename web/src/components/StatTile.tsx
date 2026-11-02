@@ -26,7 +26,7 @@ export function StatTile({ label, value, unit, previous = null, previousLabel, u
     ? "bg-surface-2 text-ink-2"
     : (delta!.value > 0) === upIsGood ? "bg-good-soft text-good" : "bg-bad-soft text-bad";
   return (
-    <div className="card card-lift group flex flex-col justify-between rounded-xl border border-line p-4 shadow-card" title={hint}>
+    <div className="stat-tile card card-lift group flex flex-col justify-between rounded-xl border border-line p-4 shadow-card" title={hint}>
       <div className="flex items-center gap-2 text-sm text-ink-2">
         {Icon && (
           <span className="icon-chip flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-110">

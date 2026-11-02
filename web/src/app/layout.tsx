@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Bricolage_Grotesque, Inter } from "next/font/google";
 import { Sidebar } from "@/components/Sidebar";
+import { Spotlight } from "@/components/Spotlight";
 import { SiteFooter } from "@/components/shell/SiteFooter";
 import { PREFS_SCRIPT } from "@/components/shell/prefs-script";
 import "./globals.css";
 
 // Inter auto-hébergée par next/font (aucune requête vers Google côté visiteur).
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
+// Police d'affichage (titres, grands chiffres).
+const display = Bricolage_Grotesque({ subsets: ["latin"], variable: "--font-display", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "Parcoursup 2021-2025 · Tableau de bord", template: "%s · Parcoursup 2021-2025" },
@@ -15,7 +18,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="fr" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="fr" className={`${inter.variable} ${display.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         {/* Thème et barre latérale appliqués avant le premier rendu (pas de flash). */}
         <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
@@ -23,6 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <div aria-hidden className="aurora"><div className="aurora-dots" /></div>
         <div aria-hidden className="scroll-progress" />
+        <Spotlight />
         <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:shadow-raised">
           Aller au contenu
         </a>

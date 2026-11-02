@@ -17,14 +17,17 @@ const STARTERS: { icon: ComponentType<SVGProps<SVGSVGElement>>; tag: string; q: 
 export function EmptyState({ onPick }: { onPick: (q: string) => void }) {
   return (
     <div className="animate-fade-up mx-auto flex max-w-3xl flex-col items-center py-8 text-center sm:py-12">
-      <AgentAvatar size={52} />
-      <h2 className="mt-5 text-2xl font-semibold tracking-tight sm:text-3xl">Que voulez-vous analyser ?</h2>
+      <span className="agent-orb">
+        <AgentAvatar size={64} />
+      </span>
+      <h2 className="title-gradient mt-7 pb-1 text-3xl font-bold tracking-tight sm:text-[2.6rem] sm:leading-tight">Que voulez-vous analyser ?</h2>
       <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-2 sm:text-base">
         L&apos;agent planifie son analyse, écrit et exécute ses propres requêtes SQL sur les 69 240 formations × sessions,
         vérifie ses résultats, crée des graphiques et vous explique ce qu&apos;il trouve.
       </p>
-      <p className="mt-3 max-w-xl rounded-lg bg-accent-soft/60 px-3 py-2 text-sm text-ink-2">
-        <span className="font-semibold text-ink">Question centrale :</span> la demande progresse plus vite que l&apos;offre ; où et pour qui l&apos;accès se resserre-t-il ?
+      <p className="story-hero mt-5 max-w-xl rounded-2xl px-4 py-3 text-sm text-white/85">
+        <span aria-hidden className="hero-shine" />
+        <span className="font-semibold text-white">Question centrale :</span> la demande progresse plus vite que l&apos;offre ; où et pour qui l&apos;accès se resserre-t-il ?
       </p>
       <div className="stagger mt-8 grid w-full gap-3 text-left sm:grid-cols-2">
         {STARTERS.map(({ icon: Icon, tag, q }) => (
@@ -32,14 +35,14 @@ export function EmptyState({ onPick }: { onPick: (q: string) => void }) {
             key={q}
             type="button"
             onClick={() => onPick(q)}
-            className="group flex gap-3 rounded-xl border border-line bg-surface p-3.5 transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_6px_20px_-10px_rgba(42,120,214,0.45)]"
+            className="card card-lift group flex gap-3 rounded-xl border border-line p-4 text-left shadow-card"
           >
-            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+            <span className="icon-chip mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-110">
               <Icon width={16} height={16} />
             </span>
             <span className="min-w-0">
-              <span className="block text-xs font-medium text-muted">{tag}</span>
-              <span className="mt-0.5 block text-sm leading-snug text-ink-2 group-hover:text-ink">{q}</span>
+              <span className="block text-[11px] font-semibold uppercase tracking-wider text-accent">{tag}</span>
+              <span className="mt-1 block text-sm leading-snug text-ink-2 group-hover:text-ink">{q}</span>
             </span>
           </button>
         ))}

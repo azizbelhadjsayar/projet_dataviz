@@ -72,7 +72,7 @@ export default async function FormationsPage({ searchParams }: { searchParams: P
 
   return (
     <PageTransition>
-      <PageHeader title="Formations & sélectivité" eyebrow="Tableau de bord" icon={GraduationCap}>
+      <PageHeader title="Formations & sélectivité" eyebrow="Où ? · les filières" chapter="02" icon={GraduationCap}>
         Pression de la demande (vœux par place) et accessibilité (taux d&apos;accès) des filières.
         Seules les filières comptant au moins {MIN_FORMATIONS} formations sont représentées pour éviter les ratios instables.
       </PageHeader>
