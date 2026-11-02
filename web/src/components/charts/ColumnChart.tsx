@@ -52,7 +52,7 @@ export function ColumnChart({ data, series, unit, stacked = false, height = 280,
                 radius={histogram ? [2, 2, 0, 0] : stacked ? (i === series.length - 1 ? [4, 4, 0, 0] : 0) : [4, 4, 0, 0]}
                 stroke={stacked ? "var(--surface)" : undefined}
                 strokeWidth={stacked ? 2 : 0}
-                isAnimationActive={false}
+                isAnimationActive animationDuration={750} animationEasing="ease-out"
               >
                 {valueLabels && (
                   <LabelList dataKey={s.key} position="top" offset={6} fill="var(--ink-2)" fontSize={11}

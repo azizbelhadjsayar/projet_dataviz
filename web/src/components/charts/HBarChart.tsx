@@ -72,7 +72,7 @@ export function HBarChart({ data, series, unit, labelKey = "label", labelWidth =
                 radius={stacked ? (i === series.length - 1 ? [0, 4, 4, 0] : 0) : [0, 4, 4, 0]}
                 stroke={stacked ? "var(--surface)" : undefined}
                 strokeWidth={stacked ? 2 : 0}
-                isAnimationActive={false}
+                isAnimationActive animationDuration={750} animationEasing="ease-out"
               >
                 {single && highlight && data.map((d) => (
                   <Cell key={String(d[labelKey])} fill={highlight.includes(String(d[labelKey])) ? s.color : "var(--neutral)"} />

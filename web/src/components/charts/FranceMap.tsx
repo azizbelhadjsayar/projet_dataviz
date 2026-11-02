@@ -93,7 +93,7 @@ export function FranceMap({ shapes, width, height, values, unit, metricLabel, se
               role={onSelect ? "button" : "img"}
               aria-pressed={onSelect ? isSel : undefined}
               aria-label={`${s.name} : ${fmtValue(values[s.code]?.value ?? null, unit)}`}
-              className={`${onSelect ? "cursor-pointer" : ""} outline-none transition-[opacity] hover:opacity-85 focus:opacity-85`}
+              className={`map-shape ${onSelect ? "cursor-pointer" : ""} outline-none hover:opacity-85 focus:opacity-85`}
               onPointerMove={(e) => place(e, s.code)}
               onPointerLeave={() => setHover(null)}
               onFocus={(e) => place(e, s.code, true)}

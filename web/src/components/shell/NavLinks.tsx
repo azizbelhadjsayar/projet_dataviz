@@ -29,11 +29,11 @@ function List({ qs, onNavigate }: { qs: string; onNavigate?: () => void }) {
                     onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     title={item.label}
-                    className={`sidebar-item group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                      active ? "bg-accent-soft font-medium text-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink"
+                    className={`sidebar-item group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-all duration-200 ${
+                      active ? "nav-active font-semibold text-ink" : "text-ink-2 hover:translate-x-0.5 hover:bg-surface-2 hover:text-ink"
                     }`}
                   >
-                    {active && <span aria-hidden className="absolute -left-3 top-1.5 bottom-1.5 w-1 rounded-r-full bg-accent" />}
+                    {active && <span aria-hidden className="bg-brand absolute -left-3 top-1.5 bottom-1.5 w-1 rounded-r-full" />}
                     <Icon size={18} strokeWidth={1.8} className={`shrink-0 ${active ? "text-accent" : "text-muted group-hover:text-ink-2"}`} />
                     <span className="sidebar-label truncate">{item.label}</span>
                     {item.badge && (

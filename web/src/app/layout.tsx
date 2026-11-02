@@ -21,6 +21,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: PREFS_SCRIPT }} />
       </head>
       <body className="min-h-full">
+        <div aria-hidden className="aurora"><div className="aurora-dots" /></div>
+        <div aria-hidden className="scroll-progress" />
         <a href="#contenu" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:shadow-raised">
           Aller au contenu
         </a>

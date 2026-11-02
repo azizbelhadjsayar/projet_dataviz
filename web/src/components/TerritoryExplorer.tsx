@@ -80,7 +80,7 @@ export function TerritoryExplorer({ metrics, regions, departements, width, heigh
     .sort((a, b) => (b.values[metricId] as number) - (a.values[metricId] as number)).findIndex((r) => r.code === sel.code) + 1 : 0;
 
   return (
-    <section className="rounded-xl border border-line bg-surface p-4 shadow-card sm:p-5">
+    <section className="card reveal rounded-xl border border-line p-4 shadow-card sm:p-5">
       <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
           <h2 className="text-[0.975rem] font-semibold">{title}</h2>

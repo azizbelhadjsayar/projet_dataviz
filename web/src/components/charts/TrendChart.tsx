@@ -75,7 +75,7 @@ export function TrendChart({ data, series, unit, xKey = "session", height = 280,
                     }
                   : { r: 4, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
                 activeDot={{ r: 5, fill: s.color, stroke: "var(--surface)", strokeWidth: 2 }}
-                isAnimationActive={false}
+                isAnimationActive animationDuration={750} animationEasing="ease-out"
                 connectNulls
                 label={
                   endLabels && series.length > 1

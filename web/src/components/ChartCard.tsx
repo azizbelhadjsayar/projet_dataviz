@@ -48,7 +48,7 @@ const iconBtn = "inline-flex h-8 items-center gap-1.5 rounded-lg px-2 text-xs fo
 export function ChartCard({ title, subtitle, table, note, className = "", actions, aiQuestion, children }: Props) {
   const [view, setView] = useState<"chart" | "table">("chart");
   return (
-    <section className={`flex min-w-0 flex-col rounded-xl border border-line bg-surface p-4 shadow-card sm:p-5 ${className}`}>
+    <section className={`card reveal flex min-w-0 flex-col rounded-xl border border-line p-4 shadow-card sm:p-5 ${className}`}>
       <header className="mb-4 flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
         <div className="min-w-0 flex-1">
           <h2 className="text-[0.975rem] font-semibold leading-snug text-ink">{title}</h2>

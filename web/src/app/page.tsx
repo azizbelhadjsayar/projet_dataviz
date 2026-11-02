@@ -92,21 +92,22 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         choisie ; les courbes montrent l&apos;évolution sur les cinq sessions pour le même périmètre.
       </PageHeader>
 
-      <section aria-label="Problématique" className="mb-5 rounded-xl border border-line bg-surface p-4 shadow-card sm:p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-accent">Question centrale</p>
-        <p className="mt-1 text-base font-semibold leading-snug text-ink sm:text-lg">
+      <section aria-label="Problématique" className="hero mb-6 rounded-2xl p-5 shadow-raised sm:p-7">
+        <div aria-hidden className="hero-shine" />
+        <p className="hero-chip inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider">Question centrale</p>
+        <p className="mt-3 max-w-3xl text-xl font-bold leading-snug tracking-tight sm:text-[1.65rem]">
           La demande progresse plus vite que l&apos;offre : où et pour qui l&apos;accès à l&apos;enseignement supérieur se resserre-t-il ?
         </p>
-        <dl className="mt-3 grid gap-x-6 gap-y-1 text-sm text-ink-2 sm:grid-cols-[auto_1fr]">
-          <dt className="font-medium text-ink">Destinataire</dt>
+        <dl className="mt-4 grid gap-x-6 gap-y-1.5 text-sm text-white/85 sm:grid-cols-[auto_1fr]">
+          <dt className="font-semibold text-white">Destinataire</dt>
           <dd>Responsables de l&apos;offre de formation (ministère, rectorats, établissements).</dd>
-          <dt className="font-medium text-ink">Intention</dt>
+          <dt className="font-semibold text-white">Intention</dt>
           <dd>Éclairer une décision : où ouvrir des places en priorité.</dd>
-          <dt className="font-medium text-ink">Parcours</dt>
+          <dt className="font-semibold text-white">Parcours</dt>
           <dd>
-            Ampleur de la tension (cette page) · Où : <Link className="text-accent hover:underline" href="/formations">filières</Link> et{" "}
-            <Link className="text-accent hover:underline" href="/territoires">territoires</Link> · Pour qui :{" "}
-            <Link className="text-accent hover:underline" href="/profils">équité</Link> · Questions libres : <Link className="text-accent hover:underline" href="/assistant">agent d&apos;analyse</Link>
+            Ampleur de la tension (cette page) · Où : <Link className="font-medium" href="/formations">filières</Link> et{" "}
+            <Link className="font-medium" href="/territoires">territoires</Link> · Pour qui :{" "}
+            <Link className="font-medium" href="/profils">équité</Link> · Questions libres : <Link className="font-medium" href="/assistant">agent d&apos;analyse</Link>
           </dd>
         </dl>
       </section>
@@ -114,7 +115,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
         <FilterBar options={filterOptions()} />
       </Suspense>
 
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <div className="stagger grid grid-cols-2 gap-3 xl:grid-cols-4">
         {KPIS.map((k) => (
           <StatTile
             key={k.id}

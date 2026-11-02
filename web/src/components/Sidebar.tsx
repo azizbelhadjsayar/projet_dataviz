@@ -10,7 +10,7 @@ import { ThemeToggle } from "./shell/ThemeToggle";
 function Brand({ compactHidden = true }: { compactHidden?: boolean }) {
   return (
     <Link href="/" className="flex min-w-0 items-center gap-3 rounded-lg outline-offset-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand text-white shadow-card">
+      <span className="brand-shine icon-chip flex h-9 w-9 shrink-0 items-center justify-center rounded-xl">
         <GraduationCap size={19} strokeWidth={1.9} />
       </span>
       <span className={`min-w-0 leading-tight ${compactHidden ? "sidebar-label" : ""}`}>
@@ -29,7 +29,7 @@ export function Sidebar() {
   return (
     <>
       {/* Bureau */}
-      <aside className="sidebar sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 lg:flex">
+      <aside className="sidebar sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface/80 backdrop-blur-xl transition-[width] duration-200 lg:flex">
         <div className="flex h-16 items-center px-4">
           <Brand />
         </div>

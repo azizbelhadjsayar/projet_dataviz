@@ -26,7 +26,7 @@ export function EmptyState({ onPick }: { onPick: (q: string) => void }) {
       <p className="mt-3 max-w-xl rounded-lg bg-accent-soft/60 px-3 py-2 text-sm text-ink-2">
         <span className="font-semibold text-ink">Question centrale :</span> la demande progresse plus vite que l&apos;offre ; où et pour qui l&apos;accès se resserre-t-il ?
       </p>
-      <div className="mt-8 grid w-full gap-3 text-left sm:grid-cols-2">
+      <div className="stagger mt-8 grid w-full gap-3 text-left sm:grid-cols-2">
         {STARTERS.map(({ icon: Icon, tag, q }) => (
           <button
             key={q}

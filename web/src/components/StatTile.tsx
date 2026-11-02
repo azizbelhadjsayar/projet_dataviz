@@ -1,7 +1,8 @@
 import type { LucideIcon } from "lucide-react";
 import { Sparkline } from "@/components/charts/Sparkline";
+import { CountUp } from "@/components/CountUp";
 import type { Unit } from "@/lib/data/schema";
-import { fmtDelta, fmtValue } from "@/lib/format";
+import { fmtDelta } from "@/lib/format";
 
 interface Props {
   label: string;
@@ -25,10 +26,10 @@ export function StatTile({ label, value, unit, previous = null, previousLabel, u
     ? "bg-surface-2 text-ink-2"
     : (delta!.value > 0) === upIsGood ? "bg-good-soft text-good" : "bg-bad-soft text-bad";
   return (
-    <div className="group flex flex-col justify-between rounded-xl border border-line bg-surface p-4 shadow-card transition-shadow hover:shadow-raised" title={hint}>
+    <div className="card card-lift group flex flex-col justify-between rounded-xl border border-line p-4 shadow-card" title={hint}>
       <div className="flex items-center gap-2 text-sm text-ink-2">
         {Icon && (
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-2 text-muted group-hover:text-accent">
+          <span className="icon-chip flex h-8 w-8 items-center justify-center rounded-lg transition-transform duration-300 group-hover:rotate-[-6deg] group-hover:scale-110">
             <Icon size={15} strokeWidth={1.9} />
           </span>
         )}
@@ -36,8 +37,8 @@ export function StatTile({ label, value, unit, previous = null, previousLabel, u
       </div>
       <div className="mt-3 flex items-end justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[1.6rem] font-semibold leading-none tracking-tight text-ink">
-            {fmtValue(value, unit, unit === "count" && (value ?? 0) >= 1e6)}
+          <p className="tabular text-[1.75rem] font-bold leading-none tracking-tight text-ink">
+            <CountUp value={value} unit={unit} compact={unit === "count" && (value ?? 0) >= 1e6} />
           </p>
           {delta && (
             <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs">

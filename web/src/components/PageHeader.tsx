@@ -29,11 +29,11 @@ export function PageHeader({ title, eyebrow, icon: Icon, children, actions, crum
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0 max-w-3xl">
           {eyebrow && (
-            <p className="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-accent">
+            <p className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent-soft/70 px-2.5 py-1 text-xs font-semibold uppercase tracking-wider text-accent">
               {Icon && <Icon size={14} strokeWidth={2} />} {eyebrow}
             </p>
           )}
-          <h1 className="text-2xl font-semibold tracking-tight text-ink sm:text-[1.9rem] sm:leading-tight">{title}</h1>
+          <h1 className="title-gradient pb-1 text-3xl font-bold tracking-tight sm:text-[2.35rem] sm:leading-tight">{title}</h1>
           {children && <p className="mt-2 text-sm leading-relaxed text-ink-2 sm:text-[0.9375rem]">{children}</p>}
         </div>
         {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
@@ -46,17 +46,17 @@ export function PageHeader({ title, eyebrow, icon: Icon, children, actions, crum
 export function Insights({ items, title = "À retenir" }: { items: ReactNode[]; title?: string }) {
   if (!items.length) return null;
   return (
-    <section aria-label={title}>
+    <section aria-label={title} className="reveal">
       <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-soft text-accent">
+        <span className="icon-chip flex h-7 w-7 items-center justify-center rounded-lg">
           <Lightbulb size={15} strokeWidth={2} />
         </span>
         {title}
       </h2>
       <div className="grid gap-3 md:grid-cols-2">
         {items.map((it, i) => (
-          <div key={i} className="rounded-xl border border-line bg-surface p-4 text-sm leading-relaxed text-ink-2 shadow-card">
-            <span className="mb-1.5 block text-[11px] font-semibold tabular text-muted">{String(i + 1).padStart(2, "0")}</span>
+          <div key={i} className="card card-lift rounded-xl border border-line p-4 text-sm leading-relaxed text-ink-2 shadow-card">
+            <span className="title-gradient mb-1.5 block text-lg font-bold tabular">{String(i + 1).padStart(2, "0")}</span>
             {it}
           </div>
         ))}
@@ -70,14 +70,14 @@ export function NextStep({ href, step, title, children }: { href: string; step: 
   return (
     <Link
       href={href}
-      className="group mt-8 flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4 shadow-card transition-all hover:-translate-y-0.5 hover:border-accent/40 sm:p-5"
+      className="next-step card-lift reveal group mt-8 flex items-center justify-between gap-4 rounded-xl p-4 shadow-card transition-all hover:shadow-raised sm:p-5"
     >
       <span className="min-w-0">
         <span className="block text-xs font-semibold uppercase tracking-wider text-accent">Étape suivante · {step}</span>
         <span className="mt-1 block text-base font-semibold text-ink">{title}</span>
         {children && <span className="mt-0.5 block text-sm text-ink-2">{children}</span>}
       </span>
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent transition-transform group-hover:translate-x-1">
+      <span className="icon-chip flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform duration-300 group-hover:translate-x-1.5 group-hover:scale-110">
         <ArrowRight size={18} />
       </span>
     </Link>
