@@ -4,18 +4,19 @@ import { ChartCard } from "@/components/ChartCard";
 import { FilterBar } from "@/components/FilterBar";
 import { HBarChart } from "@/components/charts/HBarChart";
 import { ScatterPlot } from "@/components/charts/ScatterPlot";
-import { Insights, PageHeader } from "@/components/PageHeader";
+import { Insights, NextStep, PageHeader } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { SortableTable } from "@/components/SortableTable";
 import { aggregate, labeled } from "@/lib/data/query";
-import { parseFilters, type SearchParams } from "@/lib/filters";
+import { keepQuery, parseFilters, type SearchParams } from "@/lib/filters";
 import { fmtInt, fmtPct, fmtRatio } from "@/lib/format";
 import { filterOptions, scopeLabel } from "@/lib/page-data";
 
 const MIN_FORMATIONS = 10;
 
 export default async function FormationsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const f = parseFilters(await searchParams);
+  const sp = await searchParams;
+  const f = parseFilters(sp);
   const sub = `${scopeLabel(f.scope)} · ${f.session}`;
 
   const overall = aggregate({ metrics: ["voeux_par_place", "taux_acces_moyen"], filters: f.withSession }).rows[0] ?? {};
@@ -143,6 +144,7 @@ export default async function FormationsPage({ searchParams }: { searchParams: P
       <div className="mt-6">
         <Insights items={insights} />
       </div>
+      <NextStep href={`/territoires${keepQuery(sp)}`} step="Où ?" title="Quels territoires sont les plus sous tension ?">Carte des régions et des départements.</NextStep>
     </PageTransition>
   );
 }

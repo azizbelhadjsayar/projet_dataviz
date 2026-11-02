@@ -5,7 +5,7 @@ import { FilterBar } from "@/components/FilterBar";
 import { Dumbbell } from "@/components/charts/Dumbbell";
 import { HBarChart } from "@/components/charts/HBarChart";
 import { TrendChart } from "@/components/charts/TrendChart";
-import { Insights, PageHeader } from "@/components/PageHeader";
+import { Insights, NextStep, PageHeader } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { aggregate, labeled, type Row } from "@/lib/data/query";
 import type { MetricId } from "@/lib/data/schema";
@@ -25,7 +25,8 @@ const BAC = [
 ];
 
 export default async function ProfilsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const f = parseFilters(await searchParams);
+  const sp = await searchParams;
+  const f = parseFilters(sp);
   const sub = `${scopeLabel(f.scope)} · ${f.session}`;
 
   const metrics: MetricId[] = [
@@ -130,6 +131,7 @@ export default async function ProfilsPage({ searchParams }: { searchParams: Prom
       <div className="mt-6">
         <Insights items={insights} />
       </div>
+      <NextStep href="/assistant" step="Aller plus loin" title="Posez vos propres questions à l’agent d’analyse">Il écrit ses requêtes SQL, vérifie ses résultats et trace les graphiques adaptés.</NextStep>
     </PageTransition>
   );
 }

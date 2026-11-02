@@ -24,8 +24,8 @@ export const NAV_SECTIONS: { title: string; items: NavItem[] }[] = [
   {
     title: "Exploration",
     items: [
-      { href: "/explorer", label: "Explorer les formations", icon: Search, keepFilters: true },
       { href: "/assistant", label: "Agent d'analyse", icon: Sparkles, badge: "IA" },
+      { href: "/explorer", label: "Explorer les formations", icon: Search, keepFilters: true },
     ],
   },
   {

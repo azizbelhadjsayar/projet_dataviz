@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import type { ComponentType, SVGProps } from "react";
-import { AgentAvatar, MapIcon, ScaleIcon, SparklesIcon, TrendIcon, UsersIcon, LinkIcon, BookIcon } from "./icons";
+import { AgentAvatar, MapIcon, ScaleIcon, SparklesIcon, TrendIcon, UsersIcon, BookIcon } from "./icons";
 
+// Questions de départ : le même parcours que les tableaux de bord (ampleur → où → pour qui → décision).
 const STARTERS: { icon: ComponentType<SVGProps<SVGSVGElement>>; tag: string; q: string }[] = [
-  { icon: ScaleIcon, tag: "Sélectivité", q: "À filière égale, les formations privées sont-elles plus sélectives que les publiques ?" },
-  { icon: TrendIcon, tag: "Tendances", q: "Quelles formations ont vu leur taux d'accès chuter le plus entre 2022 et 2025 ?" },
-  { icon: UsersIcon, tag: "Équité", q: "Les boursiers reçoivent-ils moins de propositions que les non-boursiers ? Où l'écart est-il le plus fort ?" },
-  { icon: LinkIcon, tag: "Corrélations", q: "Y a-t-il un lien entre la pression de la demande (vœux par place) et le taux d'accès selon les filières ?" },
-  { icon: BookIcon, tag: "Profils", q: "Comment a évolué la part des bacheliers professionnels parmi les admis en BTS depuis 2021 ?" },
-  { icon: MapIcon, tag: "Territoires", q: "Quelles académies recrutent le plus localement, et est-ce lié à la taille de leur offre ?" },
+  { icon: TrendIcon, tag: "Ampleur", q: "La demande progresse-t-elle plus vite que l'offre entre 2021 et 2025 ? Décompose la hausse des vœux par type de formation." },
+  { icon: ScaleIcon, tag: "Où · filières", q: "Quelles filières combinent une forte demande par place et un faible taux d'accès en 2025 ?" },
+  { icon: MapIcon, tag: "Où · territoires", q: "Montre sur une carte la pression (vœux par place) par département en 2025." },
+  { icon: UsersIcon, tag: "Pour qui · boursiers", q: "Les boursiers reçoivent-ils moins de propositions que les non-boursiers ? Où l'écart est-il le plus fort ?" },
+  { icon: BookIcon, tag: "Pour qui · séries de bac", q: "Comment a évolué la part des bacheliers professionnels parmi les admis en BTS depuis 2021 ?" },
+  { icon: SparklesIcon, tag: "Décision", q: "Où faudrait-il ouvrir des places en priorité ? Croise la pression, le taux d'accès et la taille des filières en 2025." },
 ];
 
 export function EmptyState({ onPick }: { onPick: (q: string) => void }) {
@@ -21,6 +22,9 @@ export function EmptyState({ onPick }: { onPick: (q: string) => void }) {
       <p className="mt-2 max-w-xl text-sm leading-relaxed text-ink-2 sm:text-base">
         L&apos;agent planifie son analyse, écrit et exécute ses propres requêtes SQL sur les 69 240 formations × sessions,
         vérifie ses résultats, crée des graphiques et vous explique ce qu&apos;il trouve.
+      </p>
+      <p className="mt-3 max-w-xl rounded-lg bg-accent-soft/60 px-3 py-2 text-sm text-ink-2">
+        <span className="font-semibold text-ink">Question centrale :</span> la demande progresse plus vite que l&apos;offre ; où et pour qui l&apos;accès se resserre-t-il ?
       </p>
       <div className="mt-8 grid w-full gap-3 text-left sm:grid-cols-2">
         {STARTERS.map(({ icon: Icon, tag, q }) => (

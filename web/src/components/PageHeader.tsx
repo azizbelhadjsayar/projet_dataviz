@@ -1,4 +1,4 @@
-import { Lightbulb, type LucideIcon } from "lucide-react";
+import { ArrowRight, Lightbulb, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -62,5 +62,24 @@ export function Insights({ items, title = "À retenir" }: { items: ReactNode[]; 
         ))}
       </div>
     </section>
+  );
+}
+
+/** Fil de lecture : en bas d'un tableau de bord, la question suivante du parcours (filtres conservés). */
+export function NextStep({ href, step, title, children }: { href: string; step: string; title: string; children?: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="group mt-8 flex items-center justify-between gap-4 rounded-xl border border-line bg-surface p-4 shadow-card transition-all hover:-translate-y-0.5 hover:border-accent/40 sm:p-5"
+    >
+      <span className="min-w-0">
+        <span className="block text-xs font-semibold uppercase tracking-wider text-accent">Étape suivante · {step}</span>
+        <span className="mt-1 block text-base font-semibold text-ink">{title}</span>
+        {children && <span className="mt-0.5 block text-sm text-ink-2">{children}</span>}
+      </span>
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft text-accent transition-transform group-hover:translate-x-1">
+        <ArrowRight size={18} />
+      </span>
+    </Link>
   );
 }

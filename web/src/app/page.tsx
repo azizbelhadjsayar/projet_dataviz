@@ -5,12 +5,12 @@ import { ChartCard } from "@/components/ChartCard";
 import { FilterBar } from "@/components/FilterBar";
 import { HBarChart } from "@/components/charts/HBarChart";
 import { TrendChart } from "@/components/charts/TrendChart";
-import { Insights, PageHeader } from "@/components/PageHeader";
+import { Insights, NextStep, PageHeader } from "@/components/PageHeader";
 import { PageTransition } from "@/components/PageTransition";
 import { StatTile } from "@/components/StatTile";
 import { aggregate, labeled } from "@/lib/data/query";
 import { METRICS, SESSIONS, type MetricId } from "@/lib/data/schema";
-import { parseFilters, withSessionFilter, type SearchParams } from "@/lib/filters";
+import { keepQuery, parseFilters, withSessionFilter, type SearchParams } from "@/lib/filters";
 import { fmtInt, fmtPct, fmtRatio } from "@/lib/format";
 import { filterOptions, scopeLabel } from "@/lib/page-data";
 
@@ -23,7 +23,8 @@ const KPIS: { id: MetricId; icon: typeof Ticket }[] = [
 ];
 
 export default async function Overview({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const f = parseFilters(await searchParams);
+  const sp = await searchParams;
+  const f = parseFilters(sp);
   const ids = KPIS.map((k) => k.id);
   const cur = aggregate({ metrics: ids, filters: f.withSession }).rows[0] ?? {};
   const prev = f.previous ? aggregate({ metrics: ids, filters: withSessionFilter(f.scope, f.previous) }).rows[0] ?? {} : {};
@@ -196,6 +197,7 @@ export default async function Overview({ searchParams }: { searchParams: Promise
       <div className="mt-6">
         <Insights items={insights} />
       </div>
+      <NextStep href={`/formations${keepQuery(sp)}`} step="Où ?" title="Quelles filières sont les plus sous tension ?">Demande par place et taux d’accès, filière par filière.</NextStep>
     </PageTransition>
   );
 }

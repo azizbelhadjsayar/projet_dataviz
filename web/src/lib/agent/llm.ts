@@ -94,7 +94,8 @@ function buildRoutes(kind: "agent" | "utility", rotate = true): Route[] {
   // Un groupe par modèle Gemini (toutes les clés, à tour de rôle).
   const geminiFor = (model: string): Route[] => geminiKeys.map(({ key, no }) => ({
     id: `gemini:${no}:${model}`, provider: "gemini", providerLabel: "Gemini", baseUrl: GEMINI_URL, apiKey: key, keyNo: no, model,
-    compact: false, reasoning: kind === "utility" ? "minimal" : env.LLM_REASONING_EFFORT || undefined,
+    // « minimal » n'est accepté que par les modèles Lite (gemini-3.7-flash le refuse : erreur 400).
+    compact: false, reasoning: kind === "utility" ? (model.includes("lite") ? "minimal" : "low") : env.LLM_REASONING_EFFORT || undefined,
   }));
   const gemini = geminiModels.map(geminiFor);
 
