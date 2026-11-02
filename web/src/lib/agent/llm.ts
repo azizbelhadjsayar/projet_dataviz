@@ -7,6 +7,7 @@ import "server-only";
 //   GROQ_API_KEYS=gsk_a,gsk_b,...   clés Groq (secours, utilisées à tour de rôle) — GROQ_API_KEY accepté aussi
 //   LLM_MODEL / LLM_FALLBACK_MODELS modèles Gemini ; GROQ_MODELS modèles Groq ; LLM_REASONING_EFFORT
 //   LLM_BASE_URL + LLM_API_KEY      remplace tout par un fournisseur compatible unique
+//   LLM_PREFER=groq                 Groq en premier, Gemini en secours
 // Un accès qui renvoie un 429 est mis en pause le temps indiqué par le fournisseur (pas réessayé à chaque étape).
 
 export interface ToolCall {
@@ -106,6 +107,9 @@ function buildRoutes(kind: "agent" | "utility", rotate = true): Route[] {
     compact: true, maxRequestTokens: GROQ_TPM[model],
     reasoning: model.startsWith("openai/gpt-oss") ? "low" : undefined,
   }));
+
+  // LLM_PREFER=groq : Groq d'abord (toutes ses clés et modèles), Gemini en secours.
+  if (env.LLM_PREFER === "groq") return [...groqModels.flatMap(groqFor), ...gemini.flat()];
 
   // Ordre : 2 meilleurs Gemini (toutes les clés), puis 1er modèle Groq (toutes les clés),
   // puis Gemini restants, puis Groq restants.
