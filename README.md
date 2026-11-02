@@ -10,7 +10,7 @@ Data/
   2021.xlsx … 2025.xlsx           fichiers sources (open data MESR, 118 colonnes)
   processed/
     parcoursup_2021_2025.csv      fichier fusionné (69 240 lignes × 79 colonnes)
-    parcoursup_2021_2025.xlsx     idem pour Excel / Power BI (+ feuille « dictionnaire »)
+    parcoursup_2021_2025.xlsx     idem pour Excel (+ feuille « dictionnaire »)
     dictionnaire_colonnes.csv     description, type et colonne source de chaque colonne
 scripts/
   01_fusion_parcoursup.py         fusion + harmonisation + contrôles
@@ -40,7 +40,7 @@ npm run dev                    # http://localhost:3000
 ```
 
 Pages : Vue d'ensemble · Formations & sélectivité · Territoires (carte) · Profils & équité · Explorer (recherche + fiche
-2021-2025) · Assistant IA · Rapport Power BI · Données & méthode.
+2021-2025) · Assistant IA · Données & méthode.
 
 ## Agent d'analyse IA
 
@@ -75,12 +75,6 @@ Agent autonome (boucle de raisonnement jusqu'à 12 étapes) qui mène lui-même 
   constante quelle que soit la longueur de la conversation. Le résumé est consultable (bouton « Mémoire »).
 - **Titres automatiques** après le premier échange (modèle léger, ~2 s), renommables. Recherche, groupes par date,
   épingler, supprimer ; lien direct vers une conversation via `/assistant?c=<id>`.
-
-## Power BI (à venir)
-
-Importer `Data/processed/parcoursup_2021_2025.xlsx` dans Power BI Desktop, publier, puis
-*Fichier → Incorporer le rapport → Publier sur le web* et coller l'URL dans `web/.env.local` :
-`POWERBI_EMBED_URL=https://app.powerbi.com/view?r=...` — la page « Rapport Power BI » l'affiche.
 
 ## Précautions de lecture
 

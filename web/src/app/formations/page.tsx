@@ -37,6 +37,18 @@ export default async function FormationsPage({ searchParams }: { searchParams: P
       n: r.nb_formations as number,
     }));
 
+  // Titre-message du nuage : corrélation entre log(vœux par place) et taux d'accès (axe X logarithmique).
+  const lx = points.map((p) => Math.log10(p.x)), ly = points.map((p) => p.y);
+  const mean = (v: number[]) => v.reduce((a, b) => a + b, 0) / (v.length || 1);
+  const mx = mean(lx), my = mean(ly);
+  const cov = lx.reduce((a, x, i) => a + (x - mx) * (ly[i] - my), 0);
+  const sd = Math.sqrt(lx.reduce((a, x) => a + (x - mx) ** 2, 0) * ly.reduce((a, y) => a + (y - my) ** 2, 0));
+  const r = points.length >= 8 && sd > 0 ? cov / sd : null;
+  const scatterTitle = r === null ? "Demande par place et accessibilité des filières"
+    : r <= -0.5 ? "Plus une filière est demandée, moins elle est accessible"
+    : r <= -0.2 ? "Les filières les plus demandées tendent à être moins accessibles"
+    : "La demande par place ne suffit pas à expliquer l'accès";
+
   const topDemand = [...filieres].filter((r) => r.voeux_par_place !== null)
     .sort((a, b) => (b.voeux_par_place as number) - (a.voeux_par_place as number)).slice(0, 12);
   const leastAccess = [...filieres].filter((r) => r.taux_acces_moyen !== null)
@@ -68,8 +80,8 @@ export default async function FormationsPage({ searchParams }: { searchParams: P
       </Suspense>
 
       <ChartCard
-        title="Demande par place et accessibilité des filières"
-        subtitle={`Chaque point est une filière · ${sub}`}
+        title={scatterTitle}
+        subtitle={`Chaque point est une filière${r !== null ? ` · corrélation r = ${r.toLocaleString("fr-FR", { maximumFractionDigits: 2, minimumFractionDigits: 2 })}` : ""} · ${sub}`}
         aiQuestion={`Y a-t-il un lien entre la pression de la demande (vœux par place) et le taux d'accès selon les filières (${sub}) ? Calcule la corrélation et identifie les filières atypiques.`}
         note="Axe horizontal en échelle logarithmique. Les lignes grises repèrent la valeur globale du périmètre : en haut à gauche, filières peu demandées et accessibles ; en bas à droite, filières très demandées et sélectives."
         table={{
@@ -92,20 +104,20 @@ export default async function FormationsPage({ searchParams }: { searchParams: P
 
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <ChartCard
-          title="Filières les plus demandées"
+          title={topDemand.length > 1 ? `${topDemand[0].label} : la plus forte demande par place` : "Filières les plus demandées"}
           subtitle={`Vœux en phase principale par place · ${sub}`}
           aiQuestion={`Pourquoi ces filières sont-elles les plus demandées par place (${sub}) ? Compare leur évolution depuis 2021 et leur taux d'accès.`}
           table={{ columns: ["Filière", "Vœux / place"], rows: topDemand.map((r) => [r.label, fmtRatio(r.voeux_par_place as number)]) }}
         >
-          <HBarChart data={topDemand} unit="ratio" labelWidth={230} series={[{ key: "voeux_par_place", label: "Vœux par place", color: "var(--series-1)" }]} />
+          <HBarChart data={topDemand} unit="ratio" labelWidth={230} highlight={topDemand.length > 1 ? [String(topDemand[0].label)] : undefined} series={[{ key: "voeux_par_place", label: "Vœux par place", color: "var(--series-1)" }]} />
         </ChartCard>
         <ChartCard
-          title="Filières les moins accessibles"
+          title={leastAccess.length > 1 ? `${leastAccess[0].label} : l'accès le plus difficile` : "Filières les moins accessibles"}
           subtitle={`Taux d'accès moyen, du plus bas au plus haut · ${sub}`}
           aiQuestion={`Analyse les filières au taux d'accès le plus bas (${sub}) : public vs privé, évolution depuis 2022, profil des admis (mentions, boursiers).`}
           table={{ columns: ["Filière", "Taux d'accès"], rows: leastAccess.map((r) => [r.label, fmtPct(r.taux_acces_moyen as number)]) }}
         >
-          <HBarChart data={leastAccess} unit="pct" labelWidth={230} xDomain={[0, 100]} series={[{ key: "taux_acces_moyen", label: "Taux d'accès moyen", color: "var(--series-1)" }]} />
+          <HBarChart data={leastAccess} unit="pct" labelWidth={230} xDomain={[0, 100]} highlight={leastAccess.length > 1 ? [String(leastAccess[0].label)] : undefined} series={[{ key: "taux_acces_moyen", label: "Taux d'accès moyen", color: "var(--series-1)" }]} />
         </ChartCard>
       </div>
 

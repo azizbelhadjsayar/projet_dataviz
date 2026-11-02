@@ -38,9 +38,22 @@ Dimensions supplémentaires (données au format long, une ligne par combinaison)
 - facet_by = petits multiples : un panneau par valeur (ex. session, type_formation), en-têtes en haut, MÊME échelle ; 6 panneaux max. Utilise-le pour comparer des années ou quand il y aurait plus de 4 séries.
 - Exemples : évolution par secteur → line, x=session, color_by=secteur ; taux d'accès par type ET par année → bar, x=type_formation, facet_by=session ; public vs privé par filière et par année → bar, x=filiere, color_by=secteur, facet_by=session.`;
 
+/** Règles de visualisation du cours : ce que l'agent ne doit jamais produire (variante complète). */
+const CHART_RULES_FULL = `Pièges INTERDITS (règles de visualisation du projet) :
+- Jamais deux unités sur un même axe ni de double axe Y : utilise combo (panneaux alignés).
+- Jamais d'axe tronqué pour des barres ou des aires : la longueur doit être proportionnelle à la valeur (les axes partent de 0 ; un taux en % s'affiche sur 0-100).
+- Pas de camembert pour comparer des catégories entre elles ni au-delà de 5 parts : préfère bar (trié). Pie seulement pour UNE répartition simple d'un total.
+- Pas de couleur décorative : la couleur encode une dimension (color_by) ou rien. Pas plus de 4 séries colorées : au-delà, facet_by.
+- Pas de graphique pour un seul chiffre ou deux : écris-les dans le texte (ou kpi).
+- Pas de ratio sur de petits groupes sans le signaler ; pas de comparaison 2021 / 2022+ du taux d'accès sans avertissement.
+- Pas de graphique « au cas où » : 1 graphique qui répond à la question vaut mieux que 2.
+Préférences : barres horizontales triées pour classer (tâche la plus fréquente) ; courbe pour une évolution ; haltères pour un écart entre deux valeurs ; titre = la conclusion, sous-titre = périmètre et unité.`;
+
 /** Même guide, condensé pour le budget de jetons de Groq. */
 const CHART_GUIDE_COMPACT = `Types selon le besoin : bar (classement, horizontal) · column (vertical, x = session) · line (évolution) · area (total et composition dans le temps) · pie (≤ 6 parts d'un total : « cercle », « camembert ») · treemap (parts nombreuses ; color_by = groupe) · stacked_bar_100 / stacked_column_100 (total divisé en parts à 100 % ; parts via color_by ou plusieurs y, en effectifs) · stacked_bar / stacked_column (volumes empilés) · dumbbell (avant / après : y = [avant, après] ou color_by = session) · waterfall (1re ligne = départ, puis variations ; total_label ; SQL : SELECT … FROM (… UNION ALL …) ORDER BY ordre) · funnel (étapes dans l'ordre) · histogram (x = least(floor(taux_acces / 5) * 5, 95) AS classe_taux_acces, y = [count(*)]) · scatter / bubble (2 indicateurs ; size = 3e) · combo (2 unités : y = [barres, courbe], unit2) · map (x = region ou code_departement, une ligne par territoire, pas d'académies) · heatmap (x = colonnes, color_by = lignes) · kpi (chiffres clés : une ligne, une colonne par indicateur, y_units).
 color_by = 3e dimension (≤ 4 séries, un seul y) ; facet_by = un panneau par valeur (≤ 6, même échelle).`;
+
+const CHART_RULES_COMPACT = `INTERDITS : double axe ou deux unités sur un axe (→ combo) · axe tronqué pour des barres · pie pour comparer ou > 5 parts (→ bar trié) · couleur décorative · > 4 séries (→ facet_by) · graphique pour 1-2 chiffres (→ texte). Titre = la conclusion.`;
 
 const fr = (n: unknown, d = 0) =>
   typeof n === "number" ? n.toLocaleString("fr-FR", { maximumFractionDigits: d, minimumFractionDigits: d }) : "–";
@@ -48,6 +61,7 @@ const fr = (n: unknown, d = 0) =>
 async function build(variant: PromptVariant) {
   const compact = variant === "compact";
   const chartGuide = compact ? CHART_GUIDE_COMPACT : CHART_GUIDE_FULL;
+  const chartRules = compact ? CHART_RULES_COMPACT : CHART_RULES_FULL;
   const dict = JSON.parse(readFileSync(path.join(process.cwd(), "data", "dictionary.json"), "utf8")) as
     { name: string; type: string; description: string }[];
   const schema = compact
@@ -71,6 +85,10 @@ async function build(variant: PromptVariant) {
   const reperes = rep.rows.map((r) => `${r[0]} | ${fr(r[1])} | ${fr(r[2])} | ${fr(r[3])} | ${fr(r[4])} | ${fr(r[5], 1)} %`).join("\n");
 
   return `Tu es un agent d'analyse de données expert, intégré au tableau de bord « Parcoursup 2021-2025 » d'un projet de Master en data visualisation. Tu réponds en français. Tu as accès à une base DuckDB et tu mènes toi-même l'analyse nécessaire pour répondre de façon juste, chiffrée et utile.
+
+# Contexte du projet
+Question centrale : la demande progresse plus vite que l'offre ; où (filières, territoires) et pour qui (boursiers, séries de bac) l'accès à l'enseignement supérieur se resserre-t-il ?
+Destinataire : responsables de l'offre de formation (ministère, rectorats, établissements), non spécialistes des données. Intention : éclairer une décision (où ouvrir des places). Rattache tes conclusions à cette question quand c'est pertinent.
 
 # Méthode de travail (autonome)
 1. Comprends la question. Si elle est ambiguë, retiens l'interprétation la plus utile et annonce-la ; ne demande une précision que si c'est indispensable.
@@ -124,6 +142,7 @@ UNITÉS : taux_acces est DÉJÀ un pourcentage (0 à 100) : ne le multiplie JAMA
 
 # Graphiques (create_chart, à partir du result_id d'une requête)
 ${chartGuide}
+${chartRules}
 Règles : donne toujours series_labels lisibles (ex. « Taux d'accès moyen ») ; unit = count (effectifs), pct (0-100) ou ratio ; jamais deux unités sur un même axe (utilise combo). Titre = le message principal (ex. « Les CPGE restent les plus sélectives »).
 
 # Réponse finale

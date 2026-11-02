@@ -10,7 +10,7 @@ export const metadata = { title: "Données & méthode" };
 const PIPELINE = [
   { title: "Sources annuelles", text: "5 fichiers open data Parcoursup (2021 à 2025), 118 colonnes chacun.", file: "Data/2021…2025.xlsx" },
   { title: "Fusion contrôlée", text: "Mapping par nom, harmonisation des libellés, contrôle des sommes vs sources.", file: "scripts/01_fusion_parcoursup.py" },
-  { title: "Formats d'analyse", text: "CSV/XLSX (Power BI), JSON colonnaire (tableaux de bord), Parquet (agent SQL).", file: "Data/processed · web/data" },
+  { title: "Formats d'analyse", text: "CSV/XLSX (analyses externes), JSON colonnaire (tableaux de bord), Parquet (agent SQL).", file: "Data/processed · web/data" },
   { title: "Application", text: "Tableaux de bord Next.js et agent IA (Gemini + DuckDB) sur les mêmes données.", file: "web/" },
 ];
 
